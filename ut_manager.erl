@@ -1,9 +1,10 @@
 -module(ut_manager).
 -export([start/0, register_usr/3, login_usr/3, unregister_usr/2]).
 
-
 start() ->
-    spawn(fun() -> loop(#{} ) end).
+    spawn(fun() -> loop(#{} , #{}) end).
+
+
 
 register_usr(Pid, Username, Password) ->
     Pid ! {register_usr, self(), Username, Password},
@@ -24,50 +25,61 @@ unregister_usr(Pid, Username) ->
     end.
 
 
-loop(Users) ->
+
+
+loop(Users, Logged) ->
     receive
-        %Registar o utilizador
+
+        %% Criar conta
         {register_usr, From, Username, Password} ->
             case maps:is_key(Username, Users) of
                 true ->
                     From ! {error, user_exists},
-                    loop(Users);
+                    loop(Users, Logged);
 
                 false ->
                     NewUsers = maps:put(Username, Password, Users),
-                    From ! {ok, registered},
-                    loop(NewUsers)
+                    From ! ok,
+                    loop(NewUsers, Logged)
             end;
 
-        %% Login
+        %% Utilizador faz login
         {login_usr, From, Username, Password} ->
             case maps:find(Username, Users) of
                 error ->
                     From ! {error, user_not_found},
-                    loop(Users);
+                    loop(Users, Logged);
 
                 {ok, StoredPass} ->
                     case StoredPass =:= Password of
-                        true ->
-                            From ! {ok, logged_in},
-                            loop(Users);
-
                         false ->
                             From ! {error, wrong_password},
-                            loop(Users)
+                            loop(Users, Logged);
+
+                        true ->
+                            case maps:is_key(Username, Logged) of
+                                true ->
+                                    From ! {error, already_logged},
+                                    loop(Users, Logged);
+
+                                false ->
+                                    NewLogged = maps:put(Username, true, Logged),
+                                    From ! ok,
+                                    loop(Users, NewLogged)
+                            end
                     end
             end;
 
-        %%Opção de Cancelar o registo de utilizador
+        %% cancelar o registo do tropa
         {unregister_usr, From, Username} ->
             case maps:is_key(Username, Users) of
                 true ->
                     NewUsers = maps:remove(Username, Users),
-                    From ! {ok, removed},
-                    loop(NewUsers);
-
+                    NewLogged = maps:remove(Username,Logged),
+                    From ! ok,
+                    loop(NewUsers, NewLogged);
                 false ->
-                    From ! {error, user_not_found},
-                    loop(Users)
+                    From ! {error,user_not_found},
+                    loop(Users, Logged)
             end
     end.
