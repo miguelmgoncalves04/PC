@@ -26,7 +26,6 @@ unregister_usr(Pid, Username) ->
 
 
 
-
 loop(Users, Logged) ->
     receive
 
