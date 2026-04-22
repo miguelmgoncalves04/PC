@@ -27,15 +27,12 @@ start() ->
     spawn(fun() -> loop([], [], #{}, undefined) end).
 
 
-join_queue(Pid, Username) ->  % PID: MATCHMAKER_PID
-    Pid ! {join_queue, self(), Username},
-
-join_queue(Server_Pid, Username) ->  % PID: SERVER_PID
-    Server_Pid ! {join_queue, self(), Username},
+join_queue(M_Pid, Username) ->  % PID: Matchmaker_PID
+    M_Pid ! {join_queue, self(), Username},
     receive Response -> Response end.
 
-leave_queue(Server_Pid, Username) ->  % PID: SERVER_PID
-    Server_Pid ! {leave_queue, self(), Username},
+leave_queue(M_Pid, Username) ->  % PID: Matchmaker_PID
+    M_Pid ! {leave_queue, self(), Username},
     receive Response -> Response end.
 
 loop(QueueNames, QueuePids, Games,Timer) ->
