@@ -24,7 +24,7 @@
 % acho que é isso xd
 
 start() ->
-    spawn(fun() -> loop([], [], #{}) end).
+    spawn(fun() -> loop([], [], #{}, undefined) end).
 
 
 
@@ -36,20 +36,34 @@ leave_queue(Server_Pid, Username) ->  % PID: SERVER_PID
     Server_Pid ! {leave_queue, self(), Username},
     receive Response -> Response end.
 
-loop(QueueNames, QueuePids, Games) ->
+loop(QueueNames, QueuePids, Games,Timer) ->
     receive
         % Jogador entra na fila
         {join_queue, From, Username} ->
             case lists:member(Username,QueueNames) of % if username in queue
                 true ->
                     From ! {error, already_in_queue},
-                    loop(QueueNames, QueuePids, Games);
+                    loop(QueueNames, QueuePids, Games, Timer);
                 false ->
                     NewNames = QueueNames ++ [Username],
                     NewPids  = QueuePids ++ [From],
                     From ! ok,
-                    {FinalQueue,FinalPids ,FinalGames} = start_game(NewNames, NewPids,Games),  %[TRIGGER] pode acontecer um novo jogo
-                    loop(FinalQueue, FinalPids, FinalGames)
+                    Tamanho = length(NewNames),
+                    if
+                        Tamanho =:= 3 ->
+                            io:format("3 Jogadores, se nao entrar um quarto jogador o jogo iniciara em 30s"),
+                            Clock = erlang:send_after(30000,self(),force_start),
+                            loop(NewNames, NewPids, Games, Clock);
+
+                        Tamanho >= 4 ->
+                            io:format("4 jogadores, pronto para começar o jogo!"),
+                            if Timer =/= undefined -> erlang:cancel_timer(Timer); true -> ok end,
+                            {FinalNames,FinalPids ,FinalGames} = start_game(NewNames, NewPids,Games , 4),%[TRIGGER] pode acontecer um novo jogo
+                            loop(FinalNames,FinalPids,FinalGames,undefined);
+
+                        true ->
+                            loop(NewNames,NewPids,Games,Timer)
+                    end
             end;
         %Conas sai da fila
         {leave_queue, From, Username} ->
@@ -57,24 +71,37 @@ loop(QueueNames, QueuePids, Games) ->
                 true ->
                     {NewNames, NewPids} = remove_player(Username, QueueNames, QueuePids),
                     From ! ok,
-                    loop(NewNames, NewPids, Games);
+
+                    NovoRelogio = if 
+                        length(NewNames) < 3 andalso Timer =/= undefined->
+                            erlang:cancel_timer(Timer),
+                            io:format("saiu um jogador, timer cancelado"),
+                            undefined;
+                        true -> Timer
+                    end,
+                    loop(NewNames, NewPids, Games , NovoRelogio);
                 false ->
                     From ! ok,
-                    loop(QueueNames, QueuePids, Games)
+                    loop(QueueNames, QueuePids, Games,Timer)
             end;
+
+        force_start ->
+            io:format("o jogo vai começar passaram 30 segundos"),
+            {FinalNames, FinalPids, FinalGames} = start_game(QueueNames, QueuePids, Games, 3),
+            loop(FinalNames,FinalPids,FinalGames,undefined);
         %Avisar o mastchmaker que um jogo terminou, ou seja no caso de isto estar cheio pode voltar a tentar encher um servidor
         {game_finished, GameId} ->
             NewGames = maps:remove(GameId, Games),
-            {FinalQueue, FinalPids, FinalGames} = start_game(QueueNames, QueuePids ,NewGames), %[TRIGGER] pode acontecer um novo jogo
-            loop(FinalQueue,FinalPids, FinalGames)
+            {FinalQueue, FinalPids, FinalGames} = start_game(QueueNames, QueuePids ,NewGames,4), %[TRIGGER] pode acontecer um novo jogo
+            loop(FinalQueue,FinalPids, FinalGames, Timer)
     end.
 
 
 
 
 %Começar jogos
-start_game(QueueNames,QueuePids,Games) ->
-    case {length(QueueNames) >= 3, maps:size(Games) < 4} of % min de jogadores: 3 e max de salas: 4
+start_game(QueueNames,QueuePids,Games, MinJogadores) ->
+    case {length(QueueNames) >= MinJogadores, maps:size(Games) < 4} of % min de jogadores: 3 e max de salas: 4
 
         {true, true} ->
             N = case length(QueueNames) >= 4 of true -> 4; false -> 3 end,
@@ -93,7 +120,7 @@ start_game(QueueNames,QueuePids,Games) ->
             NewGames = maps:put(GameId, SelectedPids, Games),
 
             %tenta criar mais jogos recursivamente
-            start_game(RestNames, RestPids ,NewGames);
+            start_game(RestNames, RestPids ,NewGames, 4);
 
         _ ->
             {QueueNames, QueuePids,Games}
