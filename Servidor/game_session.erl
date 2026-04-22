@@ -5,7 +5,7 @@
 start(Players, MatchmakerPid) ->
     init(Players, MatchmakerPid).
 
-% API para receber input (do client_handler depois)
+% API para receber input (do client_handler depois) perfeito
 send_input(GamePid, Username, Input) ->
     GamePid ! {input, Username, Input}.
 
@@ -18,6 +18,8 @@ init(Players, MatchmakerPid) ->
         players    => init_players(Players),
         start_time => erlang:monotonic_time(second)
     },
+
+    erlang:send_after(50, self(), update_tick), % agora os ticks sao um timer interno do erlang
     loop(State, MatchmakerPid).
 
 
@@ -26,7 +28,8 @@ loop(State, MatchmakerPid) ->
         {input, Username, Command} ->
             NewState = handle_input(State, Username, Command),
             loop(NewState, MatchmakerPid)
-    after 50 ->  %% ~20 FPS
+    update_tick ->  %% ~20 FPS ////
+        erlang:send_after(50, self(), update_tick),
         Now   = erlang:monotonic_time(second),
         Start = maps:get(start_time, State),
         UpdatedState = update(State),
@@ -96,7 +99,7 @@ handle_input(State, Username, Command) ->
     end.
 
 
-% A cada tick(50 MS) aplica as velocidades ao estado de cada jogador.
+% A cada tick(50 MS) aplica as velocidades ao estado de cada jogador. 👅👅👅👅
 % Aqui depois tambem entram colisoes, limites do mapa, etc.
 update(State) ->
     Players = maps:get(players, State),
@@ -117,5 +120,10 @@ broadcast(State) ->
     Players = maps:get(players, State),
     lists:foreach(fun({_Username, Data}) ->
         Pid = maps:get(pid, Data),
-        Pid ! {game_update, State}
+        Pid ! {game_update, State} %isto aqui é o pid de cada jogador esta
     end, maps:to_list(Players)).
+
+
+
+
+

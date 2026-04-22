@@ -27,8 +27,7 @@ start() ->
     spawn(fun() -> loop([], #{}) end).
 
 
-
-join_queue(Pid, Username) ->  % PID: SERVER_PID
+join_queue(Pid, Username) ->  % PID: MATCHMAKER_PID
     Pid ! {join_queue, self(), Username},
     receive Response -> Response end.
 
@@ -79,9 +78,9 @@ start_game(Queue, Games) ->
         {true, true} ->
             N = case length(QueueNames) >= 4 of true -> 4; false -> 3 end,
             SelectedNames = lists:sublist(QueueNames, N), 
-            SelectedPids  = lists:sublist(QueuePids, N), 
+            SelectedPids  = lists:sublist(QueuePids, N), %%%%
             RestNames = lists:nthtail(N, QueueNames), 
-            RestPids  = lists:nthtail(N, QueuePids), 
+            RestPids  = lists:nthtail(N, QueuePids), %%%%%
 
             %depois há que ligar isto ao cenas que vai fazer a comunicação entre o client e o servidor
             io:format("Novo jogo encontrado (~p) com jogadores: ~p~n", [GameId, Players]),
@@ -94,7 +93,6 @@ start_game(Queue, Games) ->
         _ ->
             {Queue, Games}
     end.
-
 
 
 
