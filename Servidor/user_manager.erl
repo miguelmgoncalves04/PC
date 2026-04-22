@@ -6,24 +6,24 @@ start() ->
 
 
 
-register_usr(Pid, Username, Password) ->
-    Pid ! {register_usr, self(), Username, Password},
-    receive
-        Response -> Response
-    end.
+% register_usr(Pid, Username, Password) ->
+%     Pid ! {register_usr, self(), Username, Password},
+%     receive
+%         Response -> Response
+%     end.
 
-login_usr(Pid, Username, Password) ->
-    Pid ! {login_usr, self(), Username, Password},
-    receive
-        Response -> Response
-    end.
+% login_usr(Pid, Username, Password) ->
+%     Pid ! {login_usr, self(), Username, Password},
+%     receive
+%         Response -> Response
+%     end.
 
-unregister_usr(Pid, Username) ->
-    Pid ! {unregister_usr, self(), Username},
-    receive
-        Response -> Response
-    end.
-
+% unregister_usr(Pid, Username) ->
+%     Pid ! {unregister_usr, self(), Username},
+%     receive
+%         Response -> Response
+%     end.
+%isto pode ir de cona eu acho 
 
 
 loop(Users, Logged) ->
@@ -38,7 +38,7 @@ loop(Users, Logged) ->
 
                 false ->
                     NewUsers = maps:put(Username, Password, Users),
-                    From ! ok,
+                    From ! {ok, registered},
                     loop(NewUsers, Logged)
             end;
 
@@ -63,7 +63,7 @@ loop(Users, Logged) ->
 
                                 false ->
                                     NewLogged = maps:put(Username, true, Logged),
-                                    From ! ok,
+                                    From ! {ok, logged},
                                     loop(Users, NewLogged)
                             end
                     end

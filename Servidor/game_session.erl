@@ -116,7 +116,7 @@ update(State) ->
     maps:put(players, NewPlayers, State).
 
 %envia o estado atual do jogo a todos os jogadores
-broadcast(State) ->
+broadcast(State) -> %% isto está muito certo muito bem
     Players = maps:get(players, State),
     lists:foreach(fun({_Username, Data}) ->
         Pid = maps:get(pid, Data),
