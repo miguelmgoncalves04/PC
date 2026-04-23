@@ -1,26 +1,6 @@
 -module(matchmaker).
 -export([start/0, join_queue/2, leave_queue/2]).
 
-% Podem apagar isto depois se quiserem é só para entenderem as mudanças n foi grande coisa.
-
-% No ut_manager nao mexi em nada.
-
-% No matchmaker simplesmente fiz com que se guarda-se tbm os Pids de quem está na fila pq é como o stor nesta aula disse que depois
-% n se ia saber para quem mandar mensagem. No nosso caso é tipo nao se saberia para que gajos iamos mandar mensagem a dizer que
-% o jogo começou por exemplo, mas deve haver mais exemplos
-
-% Fiz isso com duas listas tipo uma com os nomes e outra com os pids, como o stor fez, nao fiz com tuplos
-
-% Em termos de funções, resumidamente é isso fiz:
-% a função remove_players que simplesmente remove um jogador.
-% A game_stub simplesmente espera 2m e avisa o mathcmaker que terminou tipo isto é onde vamos ter um coto de dor de cabeça
-% Dantes em start_game nos tavamos a usar o GameId = make_ref(), para gerar o identificador da partida
-% eu simplesmente usei o proprio pid da partida (GamePid) como identificador que o stor na aula explicou essa merda como cada
-% um é unico e os caralhos, tipo ele usou isso em "Raid = spawn(fun() -> raid(...)end),"
-% muito sinceramente eu prefiro o make_ref() por mais que o stor n use acho mais "legivel", mas yha fds.
-
-% ahh e passei a função que o miguel tinha criado para start_game aquela que pega os 4 gajos ou os 3 gajos
-% acho que é isso xd
 
 start() ->
     spawn(fun() -> loop([], [], #{}) end).

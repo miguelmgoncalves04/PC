@@ -2,11 +2,10 @@
 -export([init/3]).
 
 init(Socket,UTM,MM) -> 
-    login_loop(Socket,UTM,MM) % pid do UTM e do MM
-    end.
+    login_loop(Socket,UTM,MM). % pid do UTM e do MM
 
 join_queue(MATCHMAKER_PID, Username) ->  % PID: MATCHMAKER_PID 
-    MATCHMAKER_PID ! {join_queue, self(), Username},
+    MATCHMAKER_PID ! {join_queue, self(), Username};
 
 join_queue(MATCHMAKER_PID, Username) ->  % PID: MATCHMAKER_PID
     MATCHMAKER_PID ! {join_queue, self(), Username},
@@ -33,7 +32,7 @@ login_loop(Socket,UTM,MM) -> %aqui eu vou receber algo no formato {tcp,Socket,Da
 
         {ok, _} -> % sai do loop!!! entra no matchmaker
             gen_tcp:send(Socket, <<"<ENTRASTE>\n">>),
-            matchmaker_loop(Socket,UTM,MM)
+            matchmaker_loop(Socket,UTM,MM);
             
 
         {error, already_logged} ->
