@@ -1,3 +1,7 @@
+%ALTERAÇÕES:
+
+%Só adicionei um ";" na linha 31 xd
+
 -module(game_session).
 -export([start/2, send_input/3]).
 
@@ -27,7 +31,7 @@ loop(State, MatchmakerPid) ->
     receive
         {input, Username, Command} ->
             NewState = handle_input(State, Username, Command),
-            loop(NewState, MatchmakerPid)
+            loop(NewState, MatchmakerPid);
     update_tick ->  %% ~20 FPS ////
         erlang:send_after(50, self(), update_tick),
         Now   = erlang:monotonic_time(second),
