@@ -23,14 +23,20 @@ login_loop(Socket,UTM,MM) -> %aqui eu vou receber algo no formato {tcp,Socket,Da
                 UTM ! {register_usr, self(), Username, Pass},
                 login_loop(Socket,UTM,MM);
             [<<"UNREGIST">>, Username, Pass] -> 
-                UTM ! {unregister_usr, self(), Username},
+                UTM ! {unregister_usr, self(), Username, Pass},
+                login_loop(Socket,UTM,MM);
+            [<<"LOGOUT">>] ->
                 login_loop(Socket,UTM,MM);
             _ ->
                 gen_tcp:send(Socket, <<"(ERROR) COMANDO_INVALIDO\n">>),
                 login_loop(Socket, UTM, MM)
             end;
-
-        {ok, _, Username} -> % sai do loop!!! entra no matchmaker
+        
+        {ok, registered, _Username}->
+            gen_tcp:send(Socket, <<"<RESGISTADO>\n">>),
+            login_loop(Socket,UTM,MM);
+            
+        {ok,logged, Username} -> % sai do loop!!! entra no matchmaker
             gen_tcp:send(Socket, <<"<ENTRASTE>\n">>),
             matchmaker_loop(Socket,UTM,MM,Username);
             
@@ -79,6 +85,7 @@ matchmaker_loop(Socket,UTM,MM,Username) ->
 
     end.   
 
+% isto nao me parece muito bem porque a mensagem de exit tem de vir de algum sitio neste caso do java.
 game_loop(Socket,UTM,MM,Username,GamePid) ->
     receive
         % {tcp,Socket,Data} -> 
