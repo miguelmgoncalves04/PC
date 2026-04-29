@@ -4,8 +4,12 @@
 init(Socket,UTM,MM) -> 
     login_loop(Socket,UTM,MM). % pid do UTM e do MM
 
-join_queue(MATCHMAKER_PID, Username) ->  % PID: MATCHMAKER_PID
-    MATCHMAKER_PID ! {join_queue, self(), Username}.
+join_queue(MATCHMAKER_PID,Username) ->  % PID: MATCHMAKER_PID
+    MATCHMAKER_PID ! {join_queue, self(),Username}.
+
+leave_queue(M_Pid, Username) ->
+    M_Pid ! {leave_queue, self(), Username}.
+    
 
 login_loop(Socket,UTM,MM) -> %aqui eu vou receber algo no formato {tcp,Socket,Data}
     receive 
@@ -26,9 +30,9 @@ login_loop(Socket,UTM,MM) -> %aqui eu vou receber algo no formato {tcp,Socket,Da
                 login_loop(Socket, UTM, MM)
             end;
 
-        {ok, _} -> % sai do loop!!! entra no matchmaker
+        {ok, _, Username} -> % sai do loop!!! entra no matchmaker
             gen_tcp:send(Socket, <<"<ENTRASTE>\n">>),
-            matchmaker_loop(Socket,UTM,MM);
+            matchmaker_loop(Socket,UTM,MM,Username);
             
 
         {error, already_logged} ->
@@ -53,13 +57,44 @@ login_loop(Socket,UTM,MM) -> %aqui eu vou receber algo no formato {tcp,Socket,Da
             io:format("Cliente desligou-se durante o login.~n")
         end.
 
-matchmaker_loop(Socket,UTM,MM) ->
-    join_queue(MM),
+matchmaker_loop(Socket,UTM,MM,Username) ->
     receive
+        {tcp,Socket,Data} -> 
+            Lista = binary:split(string:trim(Data), <<":">>, [global]), % comandos (e.g) JOIN EXIT LOGOUT
+            case Lista of %caso for um pedido do java isto vem no formato acima
+            [<<"JOIN">>] -> 
+                join_queue(MM,Username),
+                matchmaker_loop(Socket,UTM,MM,Username);
+            [<<"EXIT">>] ->
+                leave_queue(MM,Username),
+                matchmaker_loop(Socket,UTM,MM,Username);
+            _ ->
+                gen_tcp:send(Socket, <<"(ERROR) COMANDO_INVALIDO\n">>),
+                matchmaker_loop(Socket, UTM, MM,Username)
+            end;
+
+        {matchmaker, {game_start, GamePid}} ->
+            game_loop(Socket,UTM,MM,Username,GamePid)
         
 
     end.   
-        
+
+game_loop(Socket,UTM,MM,Username,GamePid) ->
+    receive
+        % {tcp,Socket,Data} -> 
+        % end;
+
+        {exit} ->
+            matchmaker_loop(Socket,UTM,MM,Username);
+
+        {game_update,X} ->
+            gen_tcp:send(Socket,X),
+            game_loop(Socket,UTM,MM,Username,GamePid)
+            
+
+    end.
+
+
             
             
 

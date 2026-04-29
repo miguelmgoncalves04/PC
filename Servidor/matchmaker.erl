@@ -14,19 +14,10 @@
 start() ->
     spawn(fun() -> loop([], [], #{}) end).
 
-% PID: Matchmaker_PID
-join_queue(M_Pid, Username) ->
-    M_Pid ! {join_queue, self(), Username},
-    receive
-        Response -> Response
-    end.
+
 
 % PID: Matchmaker_PID
-leave_queue(M_Pid, Username) ->
-    M_Pid ! {leave_queue, self(), Username},
-    receive
-        Response -> Response
-    end.
+
 
 loop(QueueNames, QueuePids, Games) ->
     receive
@@ -36,7 +27,7 @@ loop(QueueNames, QueuePids, Games) ->
             case lists:member(Username, QueueNames) of
                 true ->
                     From ! {error, already_in_queue},
-                    loop(QueueNames, QueuePids, Games);
+                    loop(QueueNames, QueuePids, Games); 
                 false ->
                     NewNames = QueueNames ++ [Username],
                     NewPids = QueuePids ++ [From],

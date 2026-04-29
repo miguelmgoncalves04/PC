@@ -43,7 +43,7 @@ loop(Users, Logged) ->
 
                 false ->
                     NewUsers = maps:put(Username, Password, Users),
-                    From ! {ok, registered},
+                    From ! {ok,registered, Username},
                     loop(NewUsers, Logged)
             end;
 
@@ -68,7 +68,7 @@ loop(Users, Logged) ->
 
                                 false ->
                                     NewLogged = maps:put(Username, true, Logged),
-                                    From ! {ok, logged},
+                                    From ! {ok, logged, Username},
                                     loop(Users, NewLogged)
                             end
                     end

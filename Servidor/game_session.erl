@@ -43,7 +43,7 @@ loop(State, MatchmakerPid) ->
                 io:format("Game ~p finished~n", [maps:get(id, State)]),
                 MatchmakerPid ! {game_finished, self()};
             false ->
-                loop(UpdatedState, MatchmakerPid)
+                loop(UpdatedState, MatchmakerPid);
         end
     end.
 
