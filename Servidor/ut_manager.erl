@@ -1,5 +1,10 @@
+
+%ALTERAÇÕES:
+
+%simplesmente mudei o nome do ficheiro de user_manager para ut_manager e o -export tava errado tbm xd
+
 -module(ut_manager).
--export([start/0, register_usr/3, login_usr/3, unregister_usr/2]).
+-export([start/0]).
 
 start() ->
     spawn(fun() -> loop(#{} , #{}) end).

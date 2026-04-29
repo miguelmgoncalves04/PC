@@ -1,4 +1,4 @@
--module(server).
+-module(tcp_server).
 -export([start/1]).
 
 start(Port) ->
@@ -9,10 +9,10 @@ start(Port) ->
     % Abre o Socket TCP
     {ok, LSocket} = gen_tcp:listen(Port, [binary, {packet, line}, {active, true}, {reuseaddr, true}]),
     io:format("Servidor ON na porta ~p~n", [Port]),
-    accept_loop(LSocket, UTM, MM).
+    acceptor(LSocket, UTM, MM).
 
-accept_loop(LSocket, UTM, MM) ->
+acceptor(LSocket, UTM, MM) ->
     {ok, Socket} = gen_tcp:accept(LSocket),
     % Cria um handler para o novo jogador
-    spawn(fun() -> client_handler:init(Socket, UTM, MM) end),
-    accept_loop(LSocket, UTM, MM).
+    spawn(fun() -> acceptor(LSocket, UTM, MM) end),   
+    client_handler:init(Socket, UTM, MM).              
