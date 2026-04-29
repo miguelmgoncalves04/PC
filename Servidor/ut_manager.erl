@@ -75,15 +75,22 @@ loop(Users, Logged) ->
             end;
 
         %% cancelar o registo do tropa
-        {unregister_usr, From, Username} ->
-            case maps:is_key(Username, Users) of
-                true ->
-                    NewUsers = maps:remove(Username, Users),
-                    NewLogged = maps:remove(Username,Logged),
-                    From ! ok,
-                    loop(NewUsers, NewLogged);
-                false ->
-                    From ! {error,user_not_found},
-                    loop(Users, Logged)
+        {unregister_usr, From, Username, Password} ->
+            case maps:find(Username, Users) of
+                error->
+                    From ! {error , user_not_found},
+                    loop(Users,Logged);
+
+                {ok,StoredPass}->
+                    case StoredPass =:= Password of
+                        true ->
+                            NewUsers = maps:remove(Username, Users),
+                            NewLogged = maps:remove(Username,Logged),
+                            From ! ok,
+                            loop(NewUsers, NewLogged);
+                        false ->
+                            From ! {error,wrong_password},
+                            loop(Users, Logged)
             end
-    end.
+    end
+end.
