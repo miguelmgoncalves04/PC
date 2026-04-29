@@ -1,4 +1,4 @@
-module(tcp_server).
+-module(server).
 -export([start/1]).
 
 start(Port) ->

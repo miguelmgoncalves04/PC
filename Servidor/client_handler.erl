@@ -2,19 +2,14 @@
 -export([init/3]).
 
 init(Socket,UTM,MM) -> 
-    login_loop(Socket,UTM,MM) % pid do UTM e do MM
-    end.
-
-join_queue(MATCHMAKER_PID, Username) ->  % PID: MATCHMAKER_PID 
-    MATCHMAKER_PID ! {join_queue, self(), Username},
+    login_loop(Socket,UTM,MM). % pid do UTM e do MM
 
 join_queue(MATCHMAKER_PID, Username) ->  % PID: MATCHMAKER_PID
-    MATCHMAKER_PID ! {join_queue, self(), Username},
-    receive Response -> Response end.
+    MATCHMAKER_PID ! {join_queue, self(), Username}.
 
 login_loop(Socket,UTM,MM) -> %aqui eu vou receber algo no formato {tcp,Socket,Data}
     receive 
-        {tcp,Socket,Data} ->
+        {tcp,Socket,Data} -> % RECEBI ALGO DO JAVA (user_input)
         Lista = binary:split(string:trim(Data), <<":">>, [global]), % comandos (e.g) LOGIN:PauloPicas:cartas123
         case Lista of %caso for um pedido do java isto vem no formato acima
             [<<"LOGIN">>, Username, Pass] -> 
@@ -33,7 +28,7 @@ login_loop(Socket,UTM,MM) -> %aqui eu vou receber algo no formato {tcp,Socket,Da
 
         {ok, _} -> % sai do loop!!! entra no matchmaker
             gen_tcp:send(Socket, <<"<ENTRASTE>\n">>),
-            matchmaker_loop(Socket,UTM,MM)
+            matchmaker_loop(Socket,UTM,MM);
             
 
         {error, already_logged} ->
@@ -58,7 +53,12 @@ login_loop(Socket,UTM,MM) -> %aqui eu vou receber algo no formato {tcp,Socket,Da
             io:format("Cliente desligou-se durante o login.~n")
         end.
 
+matchmaker_loop(Socket,UTM,MM) ->
+    join_queue(MM),
+    receive
         
+
+    end.   
         
             
             
