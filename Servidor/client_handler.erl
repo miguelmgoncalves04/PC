@@ -80,7 +80,11 @@ matchmaker_loop(Socket,UTM,MM,Username) ->
             end;
 
         {matchmaker, {game_start, GamePid}} ->
-            game_loop(Socket,UTM,MM,Username,GamePid)
+            game_loop(Socket,UTM,MM,Username,GamePid);
+            
+        {tcp_closed, Socket} ->
+            leave_queue(MM,Username),
+            io:format("Cliente desligou-se durante o matchmaking.~n")
         
 
     end.   
@@ -93,6 +97,8 @@ game_loop(Socket,UTM,MM,Username,GamePid) ->
 
         {exit} ->
             matchmaker_loop(Socket,UTM,MM,Username);
+
+
 
         {game_update,X} ->
             gen_tcp:send(Socket,X),

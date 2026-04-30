@@ -4,12 +4,14 @@ Client c;
 int state = 0; // 0: Login, 1: Fila (Matchmaker), 2: Jogo
 String serverMsg = "";
 ArrayList<PlayerInfo> players = new ArrayList<PlayerInfo>();
+String terminalBuffer = "";
 
 void setup() { // na teoria isto está bem
   size(800, 600);
   // Conecta ao servidor Erlang
   c = new Client(this, "127.0.0.1", 12345); 
   println("Conectado ao servidor!");
+
 }
 
 void draw() {
@@ -67,8 +69,19 @@ void parsePhysics(String msg) { // ISTO MTA MAL
 // COMANDOS DE TECLADO
 void keyPressed() {
   if (state == 0) {
-    if (key == 'l') c.write("LOGIN:PauloPicas:cartas123\n");
-    if (key == 'r') c.write("REGIST:PauloPicas:cartas123\n");
+    if (key == ENTER || key == RETURN) {
+        if (terminalBuffer.length() > 0) {
+          c.write(terminalBuffer + "\n"); // Envia o comando completo
+          println("Enviado: " + terminalBuffer); // Debug no console do Processing
+          terminalBuffer = ""; // Limpa o terminal para a próxima mensagem
+        }
+    }
+    
+    else if (key != CODED) {
+      println("Enviado: " + key);
+      terminalBuffer += key;
+    }
+
   } 
   else if (state == 2) {
     if (key == 'w' || keyCode == UP)    c.write("forward\n");
