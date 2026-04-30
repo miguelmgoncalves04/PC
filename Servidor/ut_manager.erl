@@ -1,4 +1,3 @@
-
 %ALTERAÇÕES:
 
 %simplesmente mudei o nome do ficheiro de user_manager para ut_manager e o -export tava errado tbm xd
@@ -7,9 +6,7 @@
 -export([start/0]).
 
 start() ->
-    spawn(fun() -> loop(#{} , #{}) end).
-
-
+    spawn(fun() -> loop(#{}, #{}) end).
 
 % register_usr(Pid, Username, Password) ->
 %     Pid ! {register_usr, self(), Username, Password},
@@ -28,44 +25,37 @@ start() ->
 %     receive
 %         Response -> Response
 %     end.
-%isto pode ir de cona eu acho 
-
+%isto pode ir de cona eu acho
 
 loop(Users, Logged) ->
     receive
-
         %% Criar conta
         {register_usr, From, Username, Password} ->
             case maps:is_key(Username, Users) of
                 true ->
                     From ! {error, user_exists},
                     loop(Users, Logged);
-
                 false ->
                     NewUsers = maps:put(Username, Password, Users),
-                    From ! {ok,registered, Username},
+                    From ! {ok, registered, Username},
                     loop(NewUsers, Logged)
             end;
-
         %% Utilizador faz login
         {login_usr, From, Username, Password} ->
             case maps:find(Username, Users) of
                 error ->
                     From ! {error, user_not_found},
                     loop(Users, Logged);
-
                 {ok, StoredPass} ->
                     case StoredPass =:= Password of
                         false ->
                             From ! {error, wrong_password},
                             loop(Users, Logged);
-
                         true ->
                             case maps:is_key(Username, Logged) of
                                 true ->
                                     From ! {error, already_logged},
                                     loop(Users, Logged);
-
                                 false ->
                                     NewLogged = maps:put(Username, true, Logged),
                                     From ! {ok, logged, Username},
@@ -73,24 +63,22 @@ loop(Users, Logged) ->
                             end
                     end
             end;
-
         %% cancelar o registo do tropa
         {unregister_usr, From, Username, Password} ->
             case maps:find(Username, Users) of
-                error->
-                    From ! {error , user_not_found},
-                    loop(Users,Logged);
-
-                {ok,StoredPass}->
+                error ->
+                    From ! {error, user_not_found},
+                    loop(Users, Logged);
+                {ok, StoredPass} ->
                     case StoredPass =:= Password of
                         true ->
                             NewUsers = maps:remove(Username, Users),
-                            NewLogged = maps:remove(Username,Logged),
+                            NewLogged = maps:remove(Username, Logged),
                             From ! ok,
                             loop(NewUsers, NewLogged);
                         false ->
-                            From ! {error,wrong_password},
+                            From ! {error, wrong_password},
                             loop(Users, Logged)
+                    end
             end
-    end
-end.
+    end.

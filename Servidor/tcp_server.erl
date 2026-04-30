@@ -6,7 +6,7 @@ start(Port) ->
     UTM = ut_manager:start(), %% user manager trata dos logins 
     MM  = matchmaker:start(), %% matchmaker 
     
-    % Abre o Socket TCP
+    % Abre o Socket TCP (se houver tempo seria o ideal trocar para {active, once})
     {ok, LSocket} = gen_tcp:listen(Port, [binary, {packet, line}, {active, true}, {reuseaddr, true}]),
     io:format("Servidor ON na porta ~p~n", [Port]),
     acceptor(LSocket, UTM, MM).
