@@ -111,7 +111,7 @@ handle_input(State, Username, Command) ->
     end.
 
 encode_state(State)->
-    Players=map:get(players,State),
+    Players=maps:get(players,State),
     PlayerList=maps:to_list(Players),
     EncodePlayers= lists:map(fun([Username,PData])->
         {X, Y} = maps:get(pos,PData),
