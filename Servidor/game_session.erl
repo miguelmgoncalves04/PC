@@ -113,7 +113,7 @@ handle_input(State, Username, Command) ->
 encode_state(State)->
     Players=maps:get(players,State),
     PlayerList=maps:to_list(Players),
-    EncodePlayers= lists:map(fun([Username,PData])->
+    EncodePlayers= lists:map(fun({Username,PData})->
         {X, Y} = maps:get(pos,PData),
         {Vx, Vy} = maps:get(vel, PData),
         Angle = maps:get(angle,PData),
