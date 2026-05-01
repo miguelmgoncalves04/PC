@@ -1,6 +1,14 @@
 %ALTERAÇÕES:
 
-%Só adicionei um ";" na linha 31 xd
+% Apenas vejam o final comentado
+
+%Comit todo que dei:
+% Neste commit que dei apenas mexi no client_handler e no game_session e no main.pde
+
+% Ahh e zezinho tu tinhas dito que n conseguias abrir mais que um pde porque dava erros.
+% Eu se abro os 3 com a aplicação do processing consigo rodar sem erros.
+% no Vs_code aparece tudo sublinhado ns porque
+% Tipo eu simplesmente abri o main2 main3 main4 em abas diferentes no processing e consegui rodar olha tenta
 
 -module(game_session).
 -export([start/2, send_input/3]).
@@ -159,3 +167,54 @@ broadcast(State) ->
         end,
         maps:to_list(Players)
     ).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%%%%%% Ok, então este game_session é apenas um para saber se está tudo a comunicar certinho. 
+%%%Para tipo ter acerteza que os comandos estão a ser enviados certinho e esse tipo de cenas.
+%%% Se quiserem testar o trabalho podem simplesmente tirar os comentarios disto e verificam que com 3 clientes ele está a receber
+%%% as mensagens certo e a ir para a tela de jogo, agora é fazer a parte fdd que é a fisica do jogo e isso
+%%% Eu vou trabalhar nisso agora e ver tbm se coonsigo por a fisica do jogo a funcionar com a ajuda do meu amigo.
+
+% Mas prontos pelo menos a comunicação tá a funcionar direito por isso tá safe.
+
+%-module(game_session).
+%-export([start/2, send_input/3]).
+%
+%start(Players, MatchmakerPid) ->
+%    spawn(fun() -> simple_game_loop(Players, MatchmakerPid) end).
+%
+%send_input(GamePid, Username, Input) ->
+%    GamePid ! {input, Username, Input}.
+%
+%simple_game_loop(Players, MatchmakerPid) ->
+%    receive
+%        {input, Username, Command} ->
+%            % Cria uma mensagem JSON simples com o comando
+%            Json = io_lib:format(
+%                "{\"player\":\"~s\",\"command\":\"~s\"}\n",
+%                [Username, Command]
+%            ),
+%            % Players vem do matchmaker como [{Username, Pid}]
+%            [Pid ! {game_update, Json} || {_, Pid} <- Players],
+%            simple_game_loop(Players, MatchmakerPid);
+%        _ ->
+%            simple_game_loop(Players, MatchmakerPid)
+%    after 30000 ->   % termina ao fim de 30 segundos
+%        [Pid ! {game_over, self()} || {_, Pid} <- Players],
+%        MatchmakerPid ! {game_finished, self()}
+%    end.
