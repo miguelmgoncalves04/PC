@@ -1,6 +1,6 @@
 %ALTERAÇÕES:
 
-%simplesmente mudei o nome do ficheiro de user_manager para ut_manager e o -export tava errado tbm xd
+%simplesmente mudei o nome do ficheiro de user_manager para ut_manager e o -export tava errado tbm xd bla
 
 -module(ut_manager).
 -export([start/0]).
