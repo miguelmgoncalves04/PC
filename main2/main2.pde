@@ -1,26 +1,28 @@
 import processing.net.*;
 
 Client c;
-int state = 0;
+int state = 0; // 0: Login, 1: Fila (Matchmaker), 2: Jogo
 String serverMsg = "";
 ArrayList<PlayerInfo> players = new ArrayList<PlayerInfo>();
 String terminalBuffer = "";
 
-void setup() {
+void setup() { // na teoria isto está bem
   size(800, 600);
+  // Conecta ao servidor Erlang
   c = new Client(this, "127.0.0.1", 12345);
   println("Conectado ao servidor!");
 }
 
 void draw() {
   background(30);
+  // 1. ESCUTAR O SERVIDOR
   if (c.available() > 0) {
     String raw = c.readStringUntil('\n');
     if (raw != null) {
       handleServerMessage(raw.trim());
     }
   }
-
+  // 2. DESENHAR INTERFACE BASEADA NO ESTADO
   if (state == 0) {
     drawLoginScreen();
   } else if (state == 1) {
@@ -30,22 +32,28 @@ void draw() {
   }
 }
 
+// Lógica para processar o que o Erlang envia
 void handleServerMessage(String msg) {
   println("Servidor diz: " + msg);
 
   if (msg.equals("<ENTRASTE>")) {
-    state = 1;
-    c.write("JOIN\n");                     // <-- entramos automaticamente na fila
-  } else if (msg.equals("GAME_START")) {  // <-- mensagem correta tava em portugues, mas o servidor manda GAME_START
-    state = 2;
+      state = 1; // Passa para a fila
+      c.write("JOIN\n");
+  } else if (msg.equals("GAME_START")) {
+      state = 2; // Passa para o jogo
+  } else if (msg.equals("GAME_OVER")) {  // adicionei esta linha e agora sempre que um jogo acaba começa outra vez
+      state = 1;
+      c.write("JOIN\n");
   } else if (msg.startsWith("(ERROR)")) {
-    serverMsg = msg;
+      serverMsg = msg;
   } else if (state == 2) {
-    parsePhysics(msg);
+      // Se estivermos em jogo, a mensagem é o Broadcast (posições)
+      // Formato esperado: "User1,10,20,0.5|User2,50,60,1.2"
+      parsePhysics(msg);
   }
 }
 
-void parsePhysics(String msg) {
+void parsePhysics(String msg) { // ISTO MTA MAL : luis: ta nada
   players.clear();
   String[] parts = split(msg, '|');
   for (String p : parts) {
@@ -56,13 +64,14 @@ void parsePhysics(String msg) {
   }
 }
 
+// COMANDOS DE TECLADO
 void keyPressed() {
   if (state == 0) {
     if (key == ENTER || key == RETURN) {
       if (terminalBuffer.length() > 0) {
-        c.write(terminalBuffer + "\n");
-        println("Enviado: " + terminalBuffer);
-        terminalBuffer = "";
+        c.write(terminalBuffer + "\n"); // Envia o comando completo
+        println("Enviado: " + terminalBuffer);  // Debug no console do Processing
+        terminalBuffer = ""; // Limpa o terminal para a próxima mensagem
       }
     } else if (key != CODED) {
       terminalBuffer += key;
@@ -100,15 +109,15 @@ void drawGameScreen() {
     rotate(p.angle);
     rectMode(CENTER);
     fill(0, 255, 0);
-    rect(0, 0, 30, 20);
+    rect(0, 0, 30, 20); // O "carro" do jogador
     fill(255);
     rotate(-p.angle);
     text(p.name, 0, -20);
     popMatrix();
   }
 }
-
-class PlayerInfo {
+// Classe simples para guardar os dados dos jogadores
+class PlayerInfo { // isto pra ja dica assim
   String name;
   float x, y, angle;
   PlayerInfo(String n, float x, float y, float a) {

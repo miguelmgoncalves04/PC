@@ -101,6 +101,7 @@ game_loop(Socket, UTM, MM, Username, GamePid) ->
         % Agora o que o jogador prime é enviado para o game_session
         {tcp, Socket, Data} ->
             Data1 = strip_newline(Data),
+            io:format("DEBUG game_loop recebeu: ~p~n", [Data1]), % simlesmente para debug
             Command = parse_movement(Data1),                       % converte binário para átomo (left, right, forward)
             game_session:send_input(GamePid, Username, Command),  % envia ao processo do jogo
             game_loop(Socket, UTM, MM, Username, GamePid);
@@ -115,6 +116,7 @@ game_loop(Socket, UTM, MM, Username, GamePid) ->
         
         % Quando o game_session envia {game_over, ...}, voltamos ao matchmaker
         {game_over, _GamePid} ->
+            gen_tcp:send(Socket, <<"GAME_OVER\n">>), % adicionei isto que faz com que o cliente saiba que o jogo acabou
             matchmaker_loop(Socket, UTM, MM, Username);
 
         {tcp_closed, Socket} ->

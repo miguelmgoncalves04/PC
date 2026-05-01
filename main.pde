@@ -9,14 +9,12 @@ String terminalBuffer = "";
 void setup() { // na teoria isto está bem
   size(800, 600);
   // Conecta ao servidor Erlang
-  c = new Client(this, "127.0.0.1", 12345); 
+  c = new Client(this, "127.0.0.1", 12345);
   println("Conectado ao servidor!");
-
 }
 
 void draw() {
   background(30);
-  
   // 1. ESCUTAR O SERVIDOR
   if (c.available() > 0) {
     String raw = c.readStringUntil('\n');
@@ -24,7 +22,6 @@ void draw() {
       handleServerMessage(raw.trim());
     }
   }
-
   // 2. DESENHAR INTERFACE BASEADA NO ESTADO
   if (state == 0) {
     drawLoginScreen();
@@ -38,24 +35,25 @@ void draw() {
 // Lógica para processar o que o Erlang envia
 void handleServerMessage(String msg) {
   println("Servidor diz: " + msg);
-  
+
   if (msg.equals("<ENTRASTE>")) {
-    state = 1; // Passa para a fila
-  } 
-  else if (msg.equals("<JOGO_COMECOU>")) {
-    state = 2; // Passa para o jogo
-  } 
-  else if (msg.startsWith("(ERROR)")) {
-    serverMsg = msg;
-  } 
-  else if (state == 2) {
-    // Se estivermos em jogo, a mensagem é o Broadcast (posições)
-    // Formato esperado: "User1,10,20,0.5|User2,50,60,1.2"
-    parsePhysics(msg);
+      state = 1; // Passa para a fila
+      c.write("JOIN\n");
+  } else if (msg.equals("GAME_START")) {
+      state = 2; // Passa para o jogo
+  } else if (msg.equals("GAME_OVER")) {  // adicionei esta linha e agora sempre que um jogo acaba começa outra vez
+      state = 1;
+      c.write("JOIN\n");
+  } else if (msg.startsWith("(ERROR)")) {
+      serverMsg = msg;
+  } else if (state == 2) {
+      // Se estivermos em jogo, a mensagem é o Broadcast (posições)
+      // Formato esperado: "User1,10,20,0.5|User2,50,60,1.2"
+      parsePhysics(msg);
   }
 }
 
-void parsePhysics(String msg) { // ISTO MTA MAL 
+void parsePhysics(String msg) { // ISTO MTA MAL : luis: ta nada
   players.clear();
   String[] parts = split(msg, '|');
   for (String p : parts) {
@@ -70,35 +68,31 @@ void parsePhysics(String msg) { // ISTO MTA MAL
 void keyPressed() {
   if (state == 0) {
     if (key == ENTER || key == RETURN) {
-        if (terminalBuffer.length() > 0) {
-          c.write(terminalBuffer + "\n"); // Envia o comando completo
-          println("Enviado: " + terminalBuffer); // Debug no console do Processing
-          terminalBuffer = ""; // Limpa o terminal para a próxima mensagem
-        }
-    }
-    
-    else if (key != CODED) {
-      println("Enviado: " + key);
+      if (terminalBuffer.length() > 0) {
+        c.write(terminalBuffer + "\n"); // Envia o comando completo
+        println("Enviado: " + terminalBuffer);  // Debug no console do Processing
+        terminalBuffer = ""; // Limpa o terminal para a próxima mensagem
+      }
+    } else if (key != CODED) {
       terminalBuffer += key;
     }
-
-  } 
-  else if (state == 2) {
-    if (key == 'w' || keyCode == UP)    c.write("forward\n");
-    if (key == 'a' || keyCode == LEFT)  c.write("left\n");
-    if (key == 'd' || keyCode == RIGHT) c.write("right\n");
+  } else if (state == 2) {
+    if (key == 'w' || keyCode == UP)    c.write("FORWARD\n");   // so pus com maiusculas xd
+    if (key == 'a' || keyCode == LEFT)  c.write("LEFT\n");
+    if (key == 'd' || keyCode == RIGHT) c.write("RIGHT\n");
   }
 }
 
-// --- INTERFACES VISUAIS ---
-
+//a mudança que fiz é mais para ser mais facil foi chat admito, mas tava a dar-me asia ter que tar a olhar para o terminal para ver o que tava a escrever
 void drawLoginScreen() {
   textAlign(CENTER);
   fill(255);
   text("ECRÃ DE LOGIN", width/2, height/2 - 40);
-  text("Carrega em 'L' para Login ou 'R' para Registar", width/2, height/2);
+  text("Digita o comando (ex: LOGIN:Alice:123)", width/2, height/2);
   fill(255, 0, 0);
   text(serverMsg, width/2, height/2 + 40);
+  fill(255);
+  text(terminalBuffer, width/2, height/2 + 80);
 }
 
 void drawQueueScreen() {
@@ -122,7 +116,6 @@ void drawGameScreen() {
     popMatrix();
   }
 }
-
 // Classe simples para guardar os dados dos jogadores
 class PlayerInfo { // isto pra ja dica assim
   String name;
