@@ -208,7 +208,7 @@ handle_object_collisions(State) ->
 
 ensure_min_food(Players, Objects) ->
     MinPlayerRadius = lists:min(
-        [maps:get(radius, P) || {_, P} <- maps:to_lists(Players)]
+        [maps:get(radius, P) || {_, P} <- maps:to_list(Players)]
     ),
     HasSmallFood = lists:any(
         fun(O) -> maps:get(type, O) =:= food andalso maps:get(radius, O) < MinPlayerRadius end,
@@ -254,7 +254,7 @@ encode_state(State) ->
 
     Objects_str = lists:join(
         "|",
-        list:map(
+        lists:map(
             fun(Obj) ->
                 {X, Y} = maps:get(pos, Obj),
                 Type =
