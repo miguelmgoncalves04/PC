@@ -27,7 +27,8 @@ login_loop(Socket,UTM,MM) -> %aqui eu vou receber algo no formato {tcp,Socket,Da
             [<<"UNREGIST">>, Username, Pass] -> 
                 UTM ! {unregister_usr, self(), Username, Pass},
                 login_loop(Socket,UTM,MM);
-            [<<"LOGOUT">>] ->
+            [<<"LOGOUT">>, Username] ->
+                UTM ! {logout_usr, self(), Username},
                 login_loop(Socket,UTM,MM);
             _ ->
                 gen_tcp:send(Socket, <<"(ERROR) COMANDO_INVALIDO\n">>),
@@ -35,7 +36,7 @@ login_loop(Socket,UTM,MM) -> %aqui eu vou receber algo no formato {tcp,Socket,Da
             end;
         
         {ok, registered, _Username}->
-            gen_tcp:send(Socket, <<"<RESGISTRADO>\n">>),
+            gen_tcp:send(Socket, <<"<REGISTRADO>\n">>),
             login_loop(Socket,UTM,MM);
             
         {ok,logged, Username} -> % sai do loop!!! entra no matchmaker

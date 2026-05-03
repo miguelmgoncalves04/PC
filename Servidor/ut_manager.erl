@@ -72,10 +72,10 @@ loop(Users, Logged) ->
                 {ok, StoredPass} ->
                     case StoredPass =:= Password of
                         true ->
-                            %NewUsers = maps:remove(Username, Users), o unregister nao precisar
+                            NewUsers = maps:remove(Username, Users),
                             NewLogged = maps:remove(Username, Logged),
                             From ! ok,
-                            loop(Users, NewLogged);
+                            loop(NewUsers, NewLogged);
                         false ->
                             From ! {error, wrong_password},
                             loop(Users, Logged)

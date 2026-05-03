@@ -53,19 +53,25 @@ start_game(QNamesPids, Games) ->
 
             SelectedPlayers = lists:sublist(QNamesPids, N),
             RestPlayers = lists:nthtail(N, QNamesPids),
-            GamePid = game_session:start(SelectedPlayers, self()),
 
-            % GameId = make_ref(), tinha isto dantes mas acho melhor usar o GamePid simpelsmente porque depois vamos ter problemas ao remover a partida do mapa. Tipo o game_session vai mandar um {game_finished, self()} (acho sem ver) e aqui o self vai ser o GamePid.E como a chave do mapa é o GamePid assim remove diretamente, se fosse um makeref() seria outro pid e acho que iam tipo encher que no caso acho que pelo enunciado so pode ter 4 partidas ou algo assim. Por isso mudei isso mas posso so tar a trollar mb se tiver mas assim é 100% que funciona.
-            %depois há que ligar isto ao cenas que vai fazer a comunicação entre o client e o servidor
-            SelectedPids = [Pid || {_, Pid} <- SelectedPlayers],
-            [Pid ! {matchmaker, {game_start, GamePid}} || Pid <- SelectedPids],
-            SelectedNames = [Name || {Name, _} <- SelectedPlayers],
-            io:format("Novo jogo (~p) com jogadores: ~p~n", [GamePid, SelectedNames]),
+            ValidPlayers = lists:filter(
+                fun({_, Pid}) -> is_process_alive(Pid) end, SelectedPlayers
+            ),
 
-            NewGames = maps:put(GamePid, SelectedPlayers, Games),
-
-            %tenta criar mais jogos recursivamente
-            start_game(RestPlayers, NewGames);
+            case length(ValidPlayers) >= 3 of
+                false ->
+                    InvalidPlayers = SelectedPlayers -- ValidPlayers,
+                    io:format("Jogadores mortos removidos: ~p~n", [InvalidPlayers]),
+                    start_game(ValidPlayers ++ RestPlayers, Games);
+                true ->
+                    GamePid = game_session:start(ValidPlayers, self()),
+                    SelectedPids = [Pid || {_, Pid} <- ValidPlayers],
+                    [Pid ! {matchmaker, {game_start, GamePid}} || Pid <- SelectedPids],
+                    SelectedNames = [Name || {Name, _} <- ValidPlayers],
+                    io:format("Novo jogo (~p) com jogadores: ~p~n", [GamePid, SelectedNames]),
+                    NewGames = maps:put(GamePid, ValidPlayers, Games),
+                    start_game(RestPlayers, NewGames)
+            end;
         _ ->
             {QNamesPids, Games}
     end.
