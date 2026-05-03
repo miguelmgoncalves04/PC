@@ -100,13 +100,13 @@ init_players(Players) ->
 init_objetct(NumFood, NumPoison) ->
     Foods = [make_object(food) || _ <- lists:seq(1, NumFood)],
     Poisons = [make_object(poison) || _ <- lists:seq(1, NumPoison)],
-    Foods + Poisons.
+    Foods ++ Poisons.
 
 make_object(Type) ->
     Radius =
         case Type of
-            Food -> 3.0 + rand:uniform() * 15.0;
-            Poison -> 3.0 + rand:uniform() * 10.0
+            food -> 3.0 + rand:uniform() * 15.0;
+            poison -> 3.0 + rand:uniform() * 10.0
         end,
     #{
         id => make_ref(),
@@ -155,7 +155,7 @@ handle_object_collisions(State) ->
     Players = maps:get(players, State),
     Objects = maps:get(objects, State),
 
-    {NewPlayers, NewObjects} = lists:fold1(
+    {NewPlayers, NewObjects} = lists:foldl(
         fun(Obj, {PAcc, OAcc}) ->
             {ObjX, ObjY} = maps:get(pos, Obj),
             ObjR = maps:get(radius, Obj),
@@ -208,7 +208,7 @@ handle_object_collisions(State) ->
 
 ensure_min_food(Players, Objects) ->
     MinPlayerRadius = lists:min(
-        [maps:get(radius, P) || {_, P} <- maps:to_list(Players)]
+        [maps:get(radius, P) || {_, P} <- maps:to_lists(Players)]
     ),
     HasSmallFood = lists:any(
         fun(O) -> maps:get(type, O) =:= food andalso maps:get(radius, O) < MinPlayerRadius end,
