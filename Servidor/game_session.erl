@@ -22,6 +22,25 @@
 
 % E depois é fazer a fisica do joguinho
 
+
+
+
+
+% terceiro comit do luis:
+
+
+
+% Simplemtene mudei tipo os valores de força e isso, mas ainda é preciso mudar porque o moviento tá uma piça (mas é só indo mudar os valores literal) 
+% nem sei se é suposto ser assim mas eu intepretei desta forma com um pouco de ajuda xd. Ahh e adicionei o amortecimento linear 
+% e angular porque o coiso tipo quando clicavas na tecla esquerda ficava sempre a girar e n parava por isso agora para é tipo 
+% um atrito, no enunciado num diz nada contra por isso fds.
+
+%Ainda falta fazer o top pontuações tipo por mimfazia-se memo um novo processo, arquivo, que se iniciava com o tcp_server.
+%Mas o mais importante é qu no game_session falta fazer com que os objetos respawnem e tbm tipo fazer um 
+%"handle_player_collisions", porque ainda n dá para comer os migos👅👅👅
+
+% O resto tá no main.pde
+
 -module(game_session).
 -export([start/2, send_input/3]).
 
@@ -76,7 +95,7 @@ init_players(Players) ->
     % eu sempre tive difculdade em usar foldl e foldr, mas tem de ser porque tava a crashar, dantes lists:map devolvia uma lista {Username, PData} e com lists:foldl devolve um mapa #{Username => PData}, broadcaste e ssas funcoes todas que tinhamos usavam maps:find e cenas assim por isso é preciso
     lists:foldl(
         fun({Username, Pid}, AccMap) ->
-            Mass = 10.0,
+            Mass = 800.0,
             PData = #{
                 % Mudei isto tbm
                 pos => {rand:uniform() * 500, rand:uniform() * 500},
@@ -84,8 +103,8 @@ init_players(Players) ->
                 angle => 0.0,
                 ang_vel => 0.0,
                 mass => Mass,
-                torque => 2.13,
-                force => 4.23,
+                torque => 10.00,
+                force => 25.00,
                 score => 0,
                 % guardamos o raio para o futuro
                 radius => math:sqrt(Mass / math:pi()),
@@ -105,8 +124,8 @@ init_objetct(NumFood, NumPoison) ->
 make_object(Type) ->
     Radius =
         case Type of
-            food -> 3.0 + rand:uniform() * 15.0;
-            poison -> 3.0 + rand:uniform() * 10.0
+            food -> 1.0 + rand:uniform() * 15.0;
+            poison -> 1.0 + rand:uniform() * 20.0
         end,
     #{
         id => make_ref(),
@@ -154,6 +173,7 @@ handle_input(State, Username, Command) ->
 handle_object_collisions(State) ->
     Players = maps:get(players, State),
     Objects = maps:get(objects, State),
+    io:format("Verificando colisões com ~p objetos~n", [length(Objects)]),
 
     {NewPlayers, NewObjects} = lists:foldl(
         fun(Obj, {PAcc, OAcc}) ->
@@ -177,6 +197,7 @@ handle_object_collisions(State) ->
                             NewPData = PData#{mass => NewMass, radius => NewR},
                             {maps:put(Username, NewPData, PA), true};
                         food when Dist + ObjR =< PR ->
+                            io:format("Comida: ~p PR=~p ObjR=~p Dist=~p~n", [Username, PR, ObjR, Dist]),
                             %% captura total: ganha massa
                             NewMass = maps:get(mass, PData) + ObjM,
                             NewR = math:sqrt(NewMass / math:pi()),
@@ -285,9 +306,22 @@ move_players(State) ->
             {Vx, Vy} = maps:get(vel, PData),
             Angle = maps:get(angle, PData),
             AngVel = maps:get(ang_vel, PData),
+
+            % 1. Atualiza posição e ângulo com a velocidade atual
+            NewX = X + Vx,
+            NewY = Y + Vy,
+            NewAngle = Angle + AngVel,
+
+            % 2. Aplica um amortecimento SUAVE (atrito) à velocidade
+            DampedVx = Vx * 0.98,        % linear perde 0.5% por tick
+            DampedVy = Vy * 0.98,
+            DampedAngVel = AngVel * 0.90, % angular perde 2% por tick
+
             PData#{
-                pos => {X + Vx, Y + Vy},
-                angle => Angle + AngVel
+                pos   => {NewX, NewY},
+                vel   => {DampedVx, DampedVy},
+                angle => NewAngle,
+                ang_vel => DampedAngVel
             }
         end,
         Players

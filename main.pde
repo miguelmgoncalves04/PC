@@ -1,28 +1,65 @@
+//Agora usa-se flags tipo leftFlag para dizer se tamos a clicar na tecla ou não e o 
+//draw() envia os comandos consuante se tiver true ou não.
+//Fica Flase se não tivermos a clicar na tecla isso é a keyReleaded. 
+//É uma forma de o game-session saber quando é para desacelerar.
+
+//O taveira colocaou no game_session o novo formato que é 
+//"P,Nome,x,y,ângulo,massa,score|...|O,F/V,x,y,raio|...". e eu adaptedei tudo para
+//essa cena tbm.
+
+//Nova classe ObjectInfo para desenhar o venono e comida.
+
+
+//Agora são desenhados cirulos em ves de retangulos nos jogadores.
+//O raio desses é simplesmente sqrt(mass/PI) e usa-se a nova variavel myUsername 
+//para saber qual pintar de azul
+
+
+//Pedi ao chat para comentar o codigo tbm hjahjah
+//Btw foi mais ele do que eu que fiz isto, mas tá certo acho kk, por isso yha eu n saia do sitio kkkk.
+
+
 import processing.net.*;
 
-Client c;
-int state = 0; // 0: Login, 1: Fila (Matchmaker), 2: Jogo
-String serverMsg = "";
-ArrayList<PlayerInfo> players = new ArrayList<PlayerInfo>();
-String terminalBuffer = "";
+// ==================== VARIÁVEIS GLOBAIS ====================
+Client c;                           // ligação TCP com o servidor Erlang
+int state = 0;                      // ecrã atual: 0=Login, 1=Fila de espera, 2=Jogo
+String serverMsg = "";              // mensagem de erro ou aviso do servidor
+ArrayList<PlayerInfo> players = new ArrayList<PlayerInfo>();   // lista de jogadores recebidos
+ArrayList<ObjectInfo> objects = new ArrayList<ObjectInfo>();   // lista de objetos (comida/veneno)
+String terminalBuffer = "";         // buffer para escrever comandos no ecrã de login
+String myUsername = "";             // nome do jogador local (capturado no LOGIN)
 
-void setup() { // na teoria isto está bem
-  size(800, 600);
-  // Conecta ao servidor Erlang
-  c = new Client(this, "127.0.0.1", 12345);
+// Flags para movimento contínuo (enquanto a tecla está premida)
+boolean leftFlag = false, rightFlag = false, forwardFlag = false;
+
+// ==================== SETUP ====================
+void setup() {
+  size(800, 600);                                    // janela 800x600
+  c = new Client(this, "127.0.0.1", 12345);         // liga ao servidor local na porta 12345
   println("Conectado ao servidor!");
 }
 
+// ==================== LOOP PRINCIPAL (executado a cada frame) ====================
 void draw() {
-  background(30);
-  // 1. ESCUTAR O SERVIDOR
+  background(30);                    // fundo escuro
+
+  // --- 1. Ler todas as linhas enviadas pelo servidor ---
   if (c.available() > 0) {
     String raw = c.readStringUntil('\n');
     if (raw != null) {
       handleServerMessage(raw.trim());
     }
   }
-  // 2. DESENHAR INTERFACE BASEADA NO ESTADO
+
+  // --- 2. Enviar comandos de movimento CONTINUAMENTE se as teclas estiverem premidas ---
+  if (state == 2) {
+    if (leftFlag)   c.write("LEFT\n");
+    if (rightFlag)  c.write("RIGHT\n");
+    if (forwardFlag) c.write("FORWARD\n");
+  }
+
+  // --- 3. Desenhar o ecrã correto de acordo com o estado ---
   if (state == 0) {
     drawLoginScreen();
   } else if (state == 1) {
@@ -32,69 +69,113 @@ void draw() {
   }
 }
 
-// Lógica para processar o que o Erlang envia
+// ==================== TRATAMENTO DE MENSAGENS DO SERVIDOR ====================
 void handleServerMessage(String msg) {
-  println("Servidor diz: " + msg);
+  println("Servidor diz: " + msg);    // mostra no terminal (debug)
 
   if (msg.equals("<ENTRASTE>")) {
-      state = 1; // Passa para a fila
-      c.write("JOIN\n");
+    // Login bem-sucedido → muda para ecrã de espera e entra na fila
+    state = 1;
+    c.write("JOIN\n");
   } else if (msg.equals("GAME_START")) {
-      state = 2; // Passa para o jogo
-  } else if (msg.equals("GAME_OVER")) {  // adicionei esta linha e agora sempre que um jogo acaba começa outra vez
-      state = 1;
-      c.write("JOIN\n");
+    // A partida começou → muda para ecrã de jogo
+    state = 2;
+  } else if (msg.equals("GAME_OVER")) {
+    // A partida terminou → volta à fila automaticamente
+    state = 1;
+    leftFlag = rightFlag = forwardFlag = false;   // para enviar comandos "fantasma"
+    c.write("JOIN\n");
   } else if (msg.startsWith("(ERROR)")) {
-      serverMsg = msg;
+    // Mostra erro no ecrã de login
+    serverMsg = msg;
   } else if (state == 2) {
-      // Se estivermos em jogo, a mensagem é o Broadcast (posições)
-      // Formato esperado: "User1,10,20,0.5|User2,50,60,1.2"
-      parsePhysics(msg);
+    // Durante o jogo, as mensagens são o estado do mundo (jogadores + objetos)
+    parseGameState(msg);
   }
 }
 
-void parsePhysics(String msg) { // ISTO MTA MAL : luis: ta nada
+// ==================== PARSE DO ESTADO DO JOGO ====================
+// Formato: P,Nome,x,y,angulo,massa,score|P,...|O,F/V,x,y,raio|O,...
+void parseGameState(String msg) {
   players.clear();
-  String[] parts = split(msg, '|');
+  objects.clear();
+
+  String[] parts = split(msg, '|');           // separa pelo símbolo '|'
   for (String p : parts) {
-    String[] d = split(p, ',');
-    if (d.length == 4) {
-      players.add(new PlayerInfo(d[0], float(d[1]), float(d[2]), float(d[3])));
+    if (p.length() == 0) continue;
+    String[] d = split(p, ',');               // cada parte separada por ','
+    if (d.length == 0) continue;
+
+    if (d[0].equals("P") && d.length >= 6) {
+      // Jogador → 6 campos: P,Username,x,y,angle,mass,score
+      String name = d[1];
+      float x = float(d[2]);
+      float y = float(d[3]);
+      float angle = float(d[4]);
+      float mass = float(d[5]);
+      int score = int(d[6]);
+      players.add(new PlayerInfo(name, x, y, angle, mass, score));
+    } else if (d[0].equals("O") && d.length >= 5) {
+      // Objeto → 5 campos: O,Tipo(F/V),x,y,raio
+      String type = d[1];          // "F" = food, "V" = poison
+      float x = float(d[2]);
+      float y = float(d[3]);
+      float size = float(d[4]);    // raio do objeto
+      objects.add(new ObjectInfo(type, x, y, size));
     }
   }
+  println("Jogadores: " + players.size() + "  Objetos: " + objects.size());
 }
 
-// COMANDOS DE TECLADO
+// ==================== INPUT DO TECLADO ====================
 void keyPressed() {
   if (state == 0) {
+    // ---------- ECRÃ DE LOGIN ----------
     if (key == ENTER || key == RETURN) {
       if (terminalBuffer.length() > 0) {
-        c.write(terminalBuffer + "\n"); // Envia o comando completo
-        println("Enviado: " + terminalBuffer);  // Debug no console do Processing
-        terminalBuffer = ""; // Limpa o terminal para a próxima mensagem
+        // Extrai o username se for comando LOGIN:username:password
+        String[] loginParts = split(terminalBuffer, ':');
+        if (loginParts.length >= 2 && loginParts[0].equals("LOGIN")) {
+          myUsername = loginParts[1];
+        }
+        c.write(terminalBuffer + "\n");
+        println("Enviado: " + terminalBuffer);
+        terminalBuffer = "";
       }
     } else if (key != CODED) {
-      terminalBuffer += key;
+      terminalBuffer += key;       // acumula caracteres digitados
     }
   } else if (state == 2) {
-    if (key == 'w' || keyCode == UP)    c.write("FORWARD\n");   // so pus com maiusculas xd
-    if (key == 'a' || keyCode == LEFT)  c.write("LEFT\n");
-    if (key == 'd' || keyCode == RIGHT) c.write("RIGHT\n");
+    // ---------- DURANTE O JOGO ----------
+    // Ativa flags (o envio real é feito no draw())
+    if (key == 'w' || keyCode == UP)    forwardFlag = true;
+    if (key == 'a' || keyCode == LEFT)  leftFlag = true;
+    if (key == 'd' || keyCode == RIGHT) rightFlag = true;
   }
 }
 
-//a mudança que fiz é mais para ser mais facil foi chat admito, mas tava a dar-me asia ter que tar a olhar para o terminal para ver o que tava a escrever
+void keyReleased() {
+  if (state == 2) {
+    // Desativa as flags quando a tecla é solta
+    if (key == 'w' || keyCode == UP)    forwardFlag = false;
+    if (key == 'a' || keyCode == LEFT)  leftFlag = false;
+    if (key == 'd' || keyCode == RIGHT) rightFlag = false;
+  }
+}
+
+// ==================== ECRÃ DE LOGIN ====================
 void drawLoginScreen() {
   textAlign(CENTER);
   fill(255);
   text("ECRÃ DE LOGIN", width/2, height/2 - 40);
   text("Digita o comando (ex: LOGIN:Alice:123)", width/2, height/2);
   fill(255, 0, 0);
-  text(serverMsg, width/2, height/2 + 40);
+  text(serverMsg, width/2, height/2 + 40);    // mensagem de erro
   fill(255);
-  text(terminalBuffer, width/2, height/2 + 80);
+  text(terminalBuffer, width/2, height/2 + 80); // mostra o que estás a escrever
 }
 
+// ==================== ECRÃ DE FILA DE ESPERA ====================
 void drawQueueScreen() {
   textAlign(CENTER);
   fill(255, 255, 0);
@@ -102,25 +183,70 @@ void drawQueueScreen() {
   text("À espera de jogadores (mínimo 3)...", width/2, height/2 + 20);
 }
 
+// ==================== ECRÃ DE JOGO ====================
 void drawGameScreen() {
+  // --- Desenhar objetos (comida = verde, veneno = vermelho) ---
+  for (ObjectInfo obj : objects) {
+    if (obj.type.equals("F")) {
+      fill(0, 255, 0);                // verde para comida
+    } else {
+      fill(255, 0, 0);                // vermelho para veneno
+    }
+    noStroke();
+    ellipse(obj.x, obj.y, obj.size * 2, obj.size * 2);  // círculo com diâmetro 2*raio
+  }
+
+  // --- Desenhar jogadores ---
   for (PlayerInfo p : players) {
     pushMatrix();
-    translate(p.x, p.y);
+    translate(p.x, p.y);              // move o sistema de coordenadas para o centro do jogador
+
+    // Raio visual = sqrt(mass / PI)  --> igual à hitbox real do servidor
+    float r = (float)(Math.sqrt(p.mass / Math.PI));
+
+    fill(0);
+    // Borda azul para o próprio, vermelha para os outros
+    if (p.name.equals(myUsername)) {
+      stroke(0, 0, 255);              // azul
+    } else {
+      stroke(255, 0, 0);              // vermelho
+    }
+    strokeWeight(2);
+    ellipse(0, 0, r * 2, r * 2);      // desenha o círculo do jogador
+
+    // Linha de direção (indica para onde o jogador está virado)
     rotate(p.angle);
-    rectMode(CENTER);
-    fill(0, 255, 0);
-    rect(0, 0, 30, 20); // O "carro" do jogador
-    fill(255);
+    stroke(255);                       // branca
+    line(0, 0, r, 0);
+
+    // Nome e pontuação (desenha fora da rotação)
     rotate(-p.angle);
-    text(p.name, 0, -20);
+    fill(255);
+    textAlign(CENTER);
+    text(p.name, 0, -r - 5);           // nome por cima do círculo
+    text("Score: " + p.score, 0, r + 12); // score por baixo
+
     popMatrix();
   }
 }
-// Classe simples para guardar os dados dos jogadores
-class PlayerInfo { // isto pra ja dica assim
+
+// ==================== CLASSES DE DADOS ====================
+class PlayerInfo {
   String name;
   float x, y, angle;
-  PlayerInfo(String n, float x, float y, float a) {
-    name = n; x = x; y = y; angle = a;
+  float mass;
+  int score;
+
+  PlayerInfo(String n, float x, float y, float a, float m, int s) {
+    name = n; this.x = x; this.y = y; angle = a; mass = m; score = s;
+  }
+}
+
+class ObjectInfo {
+  String type;   // "F" (food) ou "V" (veneno)
+  float x, y, size;  // size = raio do objeto
+
+  ObjectInfo(String t, float x, float y, float s) {
+    type = t; this.x = x; this.y = y; size = s;
   }
 }
