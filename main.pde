@@ -197,6 +197,8 @@ void drawGameScreen() {
   }
 
   // --- Desenhar jogadores ---
+
+  players.sort((p1, p2) -> Float.compare(p1.mass, p2.mass)); // desenhar o gajo pequeno pro grande naqueles pique
   for (PlayerInfo p : players) {
     pushMatrix();
     translate(p.x, p.y);              // move o sistema de coordenadas para o centro do jogador

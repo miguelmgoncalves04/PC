@@ -1,11 +1,12 @@
 //Agora usa-se flags tipo leftFlag para dizer se tamos a clicar na tecla ou não e o 
 //draw() envia os comandos consuante se tiver true ou não.
-//Fica Flase se não tivermos a clicar na tecla por isso fiz a keyReleaded. 
+//Fica Flase se não tivermos a clicar na tecla isso é a keyReleaded. 
 //É uma forma de o game-session saber quando é para desacelerar.
 
 //O taveira colocaou no game_session o novo formato que é 
 //"P,Nome,x,y,ângulo,massa,score|...|O,F/V,x,y,raio|...". e eu adaptedei tudo para
 //essa cena tbm.
+
 //Nova classe ObjectInfo para desenhar o venono e comida.
 
 
@@ -15,7 +16,7 @@
 
 
 //Pedi ao chat para comentar o codigo tbm hjahjah
-//Btw foi mais ele do que eu que fiz isto, mas tá certo por isso yha eu n saia do sitio kkkk.
+//Btw foi mais ele do que eu que fiz isto, mas tá certo acho kk, por isso yha eu n saia do sitio kkkk.
 
 
 import processing.net.*;
@@ -196,6 +197,8 @@ void drawGameScreen() {
   }
 
   // --- Desenhar jogadores ---
+
+  players.sort((p1, p2) -> Float.compare(p1.mass, p2.mass)); // desenhar o gajo pequeno pro grande naqueles pique
   for (PlayerInfo p : players) {
     pushMatrix();
     translate(p.x, p.y);              // move o sistema de coordenadas para o centro do jogador

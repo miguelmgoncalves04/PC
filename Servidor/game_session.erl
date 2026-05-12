@@ -37,12 +37,12 @@
 
 %Ainda falta fazer o top pontuações tipo por mimfazia-se memo um novo processo, arquivo, que se iniciava com o tcp_server.
 %Mas o mais importante é qu no game_session falta fazer com que os objetos respawnem e tbm tipo fazer um 
-%"handle_player_collisions", porque ainda n dá para comer os migos👅👅👅
+%"handle_player_collisions", porque ainda n dá para comer os migos 👅👅👅
 
 % O resto tá no main.pde
 
 -module(game_session).
--export([start/2, send_input/3]).
+-export([start/2, send_input/3,update/1]).
 
 % Players = [{Username, Pid}]
 start(Players, MatchmakerPid) ->
@@ -90,9 +90,7 @@ loop(State, MatchmakerPid) ->
             end
     end.
 
-% CORREÇÃO 1: init_players agora devolve um MAPA, não uma lista.
 init_players(Players) ->
-    % eu sempre tive difculdade em usar foldl e foldr, mas tem de ser porque tava a crashar, dantes lists:map devolvia uma lista {Username, PData} e com lists:foldl devolve um mapa #{Username => PData}, broadcaste e ssas funcoes todas que tinhamos usavam maps:find e cenas assim por isso é preciso
     lists:foldl(
         fun({Username, Pid}, AccMap) ->
             Mass = 800.0,
@@ -251,6 +249,91 @@ ensure_min_food(Players, Objects) ->
             [NewObj | Objects]
     end.
 
+handle_player_collisions(State) ->
+    PlayersMap = maps:get(players, State),
+    UserIDs = maps:keys(PlayersMap),
+    
+    % Usamos foldl para que cada colisão atualize o "mundo" para o próximo par
+    NewPlayersMap = lists:foldl(
+        fun(U1, Acc) ->
+            % Verificamos se o jogador U1 ainda "existe" no acumulador e não foi comido
+            case maps:find(U1, Acc) of
+                {ok, P1} -> 
+                    % Comparamos P1 com todos os OUTROS jogadores
+                    Others = maps:to_list(maps:remove(U1, Acc)),
+                    check_all_opponents(U1, P1, Others, Acc);
+                error -> Acc
+            end
+        end,
+        PlayersMap,
+        UserIDs
+    ),
+    State#{players => NewPlayersMap}.
+
+check_all_opponents(U1, P1, Others, Acc) ->
+    lists:foldl(
+        fun({U2, P2}, InnerAcc) ->
+            % Pegamos a versão mais atual de P1 (ele pode ter crescido no sub-loop)
+            P1_Latest = maps:get(U1, InnerAcc),
+            
+            {X1, Y1} = maps:get(pos, P1_Latest),
+            {X2, Y2} = maps:get(pos, P2),
+            R1 = maps:get(radius, P1_Latest),
+            R2 = maps:get(radius, P2),
+            
+            DistSq = (X1 - X2)*(X1 - X2) + (Y1 - Y2)*(Y1 - Y2),
+            % Condição: Centro do menor dentro do corpo do maior + margem de tamanho
+            Threshold = 1.1,
+
+            if
+                DistSq < (R1 * R1) andalso R1 > R2 * Threshold ->
+                    %% P1 come P2
+                    io:format("~s COMEU ~s!~n", [U1, U2]),
+                    Mass1 = maps:get(mass, P1_Latest),
+                    Mass2 = maps:get(mass, P2),
+                    NewMass = Mass1 + Mass2,
+                    NewR = math:sqrt(NewMass / math:pi()),
+                    
+                    % Atualiza P1 e dá Respawn no P2
+                    Acc1 = maps:put(U1, P1_Latest#{mass => NewMass, radius => NewR, score => maps:get(score, P1_Latest) + 10}, InnerAcc),
+                    maps:put(U2, respawn_player(P2), Acc1);
+                
+                DistSq < (R2 * R2) andalso R2 > R1 * Threshold ->
+                    %% P2 come P1
+                    io:format("~s COMEU ~s!~n", [U2, U1]),
+                    Mass1 = maps:get(mass, P1_Latest),
+                    Mass2 = maps:get(mass, P2),
+                    NewMass = Mass1 + Mass2,
+                    NewR = math:sqrt(NewMass / math:pi()),
+                    
+                    % Atualiza P2 e dá Respawn no P1
+                    Acc1 = maps:put(U2, P2#{mass => NewMass, radius => NewR, score => maps:get(score, P2) + 10}, InnerAcc),
+                    maps:put(U1, respawn_player(P1_Latest), Acc1);
+                
+                true -> InnerAcc
+            end
+        end,
+        Acc,
+        Others
+    ).
+
+respawn_player(OldPData) ->
+    Mass = 800.0,
+    #{
+        pos => {rand:uniform() * 800.0, rand:uniform() * 600.0},
+        vel => {0.0, 0.0},
+        angle => 0.0,
+        ang_vel => 0.0,
+        mass => Mass,
+        torque => 10.00,
+        force => 25.00,
+        score => 0,
+        radius => math:sqrt(Mass / math:pi()),
+        pid => maps:get(pid, OldPData) 
+    }.
+
+
+
 % adaptei o encode_state para o formato que o cliente espera (Nome,x,y,ângulo|Nome...)
 encode_state(State) ->
     Players = maps:get(players, State),
@@ -289,14 +372,15 @@ encode_state(State) ->
             Objects
         )
     ),
-    list_to_binary(PlayersList ++ "|" ++ Objects_str ++ "\n").
+    list_to_binary(PlayersList ++ "|" ++ Objects_str ++ "\n"). 
 
-% NOVO: update agora aplica movimento e limites
+%renovado a cada tick esta merda
 update(State) ->
     State1 = move_players(State),
     State2 = apply_boundaries(State1),
     State3 = handle_object_collisions(State2),
-    State3.
+    State4 = handle_player_collisions(State3),
+    State4.
 
 move_players(State) ->
     Players = maps:get(players, State),
@@ -361,38 +445,3 @@ broadcast(State) ->
         end,
         maps:to_list(Players)
     ).
-
-%%%%%% Ok, então este game_session é apenas um para saber se está tudo a comunicar certinho. 
-%%%Para tipo ter acerteza que os comandos estão a ser enviados certinho e esse tipo de cenas.
-%%% Se quiserem testar o trabalho podem simplesmente tirar os comentarios disto e verificam que com 3 clientes ele está a receber
-%%% as mensagens certo e a ir para a tela de jogo, agora é fazer a parte fdd que é a fisica do jogo e isso
-%%% Eu vou trabalhar nisso agora e ver tbm se coonsigo por a fisica do jogo a funcionar com a ajuda do meu amigo.
-
-% Mas prontos pelo menos a comunicação tá a funcionar direito por isso tá safe.
-
-%-module(game_session).
-%-export([start/2, send_input/3]).
-%
-%start(Players, MatchmakerPid) ->
-%    spawn(fun() -> simple_game_loop(Players, MatchmakerPid) end).
-%
-%send_input(GamePid, Username, Input) ->
-%    GamePid ! {input, Username, Input}.
-%
-%simple_game_loop(Players, MatchmakerPid) ->
-%    receive
-%        {input, Username, Command} ->
-%            % Cria uma mensagem JSON simples com o comando
-%            Json = io_lib:format(
-%                "{\"player\":\"~s\",\"command\":\"~s\"}\n",
-%                [Username, Command]
-%            ),
-%            % Players vem do matchmaker como [{Username, Pid}]
-%            [Pid ! {game_update, Json} || {_, Pid} <- Players],
-%            simple_game_loop(Players, MatchmakerPid);
-%        _ ->
-%            simple_game_loop(Players, MatchmakerPid)
-%    after 30000 ->   % termina ao fim de 30 segundos
-%        [Pid ! {game_over, self()} || {_, Pid} <- Players],
-%        MatchmakerPid ! {game_finished, self()}
-%    end.

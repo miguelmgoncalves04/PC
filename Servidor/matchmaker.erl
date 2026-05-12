@@ -43,7 +43,7 @@ loop(QNamesPids, Games) ->
 %Começar jogos
 start_game(QNamesPids, Games) ->
     % min de jogadores: 3 e max de salas: 4
-    case {length(QNamesPids) >= 3, maps:size(Games) < 4} of
+    case {length(QNamesPids) >= 3, maps:size(Games) < 4} of % pus pra testar dps mudo 
         {true, true} ->
             N =
                 case length(QNamesPids) >= 4 of

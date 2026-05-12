@@ -15,7 +15,7 @@ login_loop(Socket,UTM,MM) -> %aqui eu vou receber algo no formato {tcp,Socket,Da
     receive 
         {tcp,Socket,Data} -> % RECEBI ALGO DO JAVA (user_input)
         Data1 = strip_newline(Data), %tira o /n no final q tava a fuder com tudo tipo quando fazemos login:....."ENTER"
-        Lista = binary:split(Data1, <<":">>, [global]), % segundo o chat "O {packet, line} já remove o \n, por isso não é necessário trim"  e tbm "string:trim nao funciona com binarios" "mas é um bocadinho contraditorio porque eu mesmo assim tive que fazer uma funcao auxiliar para tirar o \n, mas prontos está a funcionar. Mesmo assim deixei comentado como estava caso eu seja meio necio e tivesse tudo bem.
+        Lista = binary:split(Data1, <<":">>, [global]), % segundo o chat "O {packet, line} já remove o \n, por isso não é necessário trim"  e tbm "string:trim nao funciona com binarios" "mas é um bocadinho contraditorio porque eu mesmo assim tive que fazer uma funcao auxiliar para tirar o \n, mas prontos está a funcionar. Mesmo assim deixei comentado como estava caso eu seja meio necio e tivesse tudo bem. EU QUERO O CHAT SE FODA NAO ACHAS?!?!??!?!?!?!!?!?
         %Lista = binary:split(string:trim(Data), <<":">>, [global]), % comandos (e.g) LOGIN:PauloPicas:cartas123
         case Lista of %caso for um pedido do java isto vem no formato acima
             [<<"LOGIN">>, Username, Pass] -> 
@@ -96,7 +96,6 @@ matchmaker_loop(Socket,UTM,MM,Username) ->
 
     end.   
 
-% isto nao me parece muito bem porque a mensagem de exit tem de vir de algum sitio neste caso do java.
 game_loop(Socket, UTM, MM, Username, GamePid) ->
     receive
         % Agora o que o jogador prime é enviado para o game_session
