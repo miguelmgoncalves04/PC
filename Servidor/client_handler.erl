@@ -67,6 +67,9 @@ login_loop(Socket,UTM,MM) -> %aqui eu vou receber algo no formato {tcp,Socket,Da
         end.
 
 matchmaker_loop(Socket,UTM,MM,Username) ->
+    Top = top_manager:get_top(),
+    TopJson = encode_top(Top),
+    gen_tcp:send(Socket, TopJson),
     receive
         {tcp,Socket,Data} -> 
             Data1 = strip_newline(Data),
@@ -145,5 +148,14 @@ strip_newline(Bin) ->
 
 % Resumidamente tipo o cliente ao fazer o registro e o login depois estava a mandar <<"JOIN\n">> e não só join por isso estava a cair no  _ -> e dava o erro (ERROR) COMANDO_INVALIDO.
 % Eu testei isso com um game_session que deixei comentado e voçês podem ver que agora tá tudo direitinho e vai da tela de login para a tela de espera para a tela do jogo.
+
+
+
+encode_top(TopList) ->
+    JsonItems = lists:map(fun({Name, Score}) ->
+        io_lib:format("{\"username\":\"~s\",\"score\":~B}", [Name, Score])
+    end, TopList),
+    ItemsStr = lists:join(",", JsonItems),
+    list_to_binary("{\"top\":[" ++ ItemsStr ++ "]}\n").
 
 

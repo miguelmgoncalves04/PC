@@ -3,6 +3,7 @@
 
 start(Port) ->
     % Inicia os gestores globais
+    top_manager:start(),
     UTM = ut_manager:start(), %% user manager trata dos logins 
     MM  = matchmaker:start(), %% matchmaker 
     

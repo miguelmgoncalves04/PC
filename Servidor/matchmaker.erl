@@ -33,9 +33,12 @@ loop(QNamesPids, Games) ->
                     loop(QNamesPids, Games)
             end;
         %Avisar o mastchmaker que um jogo terminou, ou seja no caso de isto estar cheio pode voltar a tentar encher um servidor
-        {game_finished, GameId} ->
+        {game_finished, GameId, Winner} ->
+            case Winner of
+                no_winner -> ok;
+                {Name, Score} -> top_manager:add_winner(Name, Score)
+            end,
             NewGames = maps:remove(GameId, Games),
-            %[TRIGGER] pode acontecer um novo jogo
             {FinalQueue, FinalGames} = start_game(QNamesPids, NewGames),
             loop(FinalQueue, FinalGames)
     end.

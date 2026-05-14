@@ -27,6 +27,7 @@ int state = 0;                      // ecrã atual: 0=Login, 1=Fila de espera, 2
 String serverMsg = "";              // mensagem de erro ou aviso do servidor
 ArrayList<PlayerInfo> players = new ArrayList<PlayerInfo>();   // lista de jogadores recebidos
 ArrayList<ObjectInfo> objects = new ArrayList<ObjectInfo>();   // lista de objetos (comida/veneno)
+ArrayList<TopPlayer> topPlayers = new ArrayList<TopPlayer>();
 String terminalBuffer = "";         // buffer para escrever comandos no ecrã de login
 String myUsername = "";             // nome do jogador local (capturado no LOGIN)
 
@@ -72,7 +73,11 @@ void draw() {
 // ==================== TRATAMENTO DE MENSAGENS DO SERVIDOR ====================
 void handleServerMessage(String msg) {
   println("Servidor diz: " + msg);    // mostra no terminal (debug)
-
+  
+  if (msg.startsWith("{\"top\":")) {
+    parseTop(msg);
+    return;
+  }
   if (msg.equals("<ENTRASTE>")) {
     // Login bem-sucedido → muda para ecrã de espera e entra na fila
     state = 1;
@@ -93,6 +98,20 @@ void handleServerMessage(String msg) {
     parseGameState(msg);
   }
 }
+
+
+void parseTop(String msg) {
+    topPlayers.clear();
+    JSONObject json = parseJSONObject(msg);
+    JSONArray arr = json.getJSONArray("top");
+    for (int i = 0; i < arr.size(); i++) {
+        JSONObject item = arr.getJSONObject(i);
+        String name = item.getString("username");
+        int score = item.getInt("score");
+        topPlayers.add(new TopPlayer(name, score));
+    }
+}
+
 
 // ==================== PARSE DO ESTADO DO JOGO ====================
 // Formato: P,Nome,x,y,angulo,massa,score|P,...|O,F/V,x,y,raio|O,...
@@ -177,10 +196,17 @@ void drawLoginScreen() {
 
 // ==================== ECRÃ DE FILA DE ESPERA ====================
 void drawQueueScreen() {
-  textAlign(CENTER);
-  fill(255, 255, 0);
-  text("NA FILA DE ESPERA...", width/2, height/2);
-  text("À espera de jogadores (mínimo 3)...", width/2, height/2 + 20);
+    textAlign(CENTER);
+    fill(255, 255, 0);
+    text("NA FILA DE ESPERA...", width/2, 50);
+    text("À espera de jogadores (mínimo 3)...", width/2, 70);
+    
+    fill(255);
+    text("Top de pontuações:", width/2, 110);
+    for (int i = 0; i < topPlayers.size(); i++) {
+        TopPlayer tp = topPlayers.get(i);
+        text(tp.name + "  " + tp.score, width/2, 130 + i * 20);
+    }
 }
 
 // ==================== ECRÃ DE JOGO ====================
@@ -251,4 +277,10 @@ class ObjectInfo {
   ObjectInfo(String t, float x, float y, float s) {
     type = t; this.x = x; this.y = y; size = s;
   }
+}
+
+class TopPlayer {
+    String name;
+    int score;
+    TopPlayer(String n, int s) { name = n; score = s; }
 }

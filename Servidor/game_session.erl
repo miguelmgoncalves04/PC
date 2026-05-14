@@ -83,8 +83,20 @@ loop(State, MatchmakerPid) ->
                     io:format("Game ~p finished~n", [maps:get(id, State)]),
                     % Enviar game_over a todos os jogadores
                     Players = maps:get(players, UpdatedState),
+                    % Calcular vencedor
+                    ScoresList = [{Username, maps:get(score, PData)} || {Username, PData} <- maps:to_list(Players)],
+                    Sorted = lists:reverse(lists:keysort(2, ScoresList)),
+                    Winner = case Sorted of
+                        [{WinnerName, WinnerScore}, {_, SecondScore} | _] when SecondScore =:= WinnerScore ->
+                            no_winner;
+                        [{WinnerName, WinnerScore} | _] ->
+                            {WinnerName, WinnerScore};
+                        [] ->
+                            no_winner
+                    end,
+                    % Enviar game_over a todos os jogadores
                     [Pid ! {game_over, self()} || {_, #{pid := Pid}} <- maps:to_list(Players)],
-                    MatchmakerPid ! {game_finished, self()};
+                    MatchmakerPid ! {game_finished, self(), Winner};
                 false ->
                     loop(UpdatedState, MatchmakerPid)
             end
@@ -210,8 +222,10 @@ handle_object_collisions(State) ->
             ),
 
             case Consumed of
-                % remove objecto
-                true -> {NewPAcc, OAcc};
+                % remove objecto e gera um novo do mesmo tipo
+                true ->
+                    NewObj = make_object(ObjType),
+                    {NewPAcc, [NewObj | OAcc]};
                 % mantém objecto
                 false -> {NewPAcc, [Obj | OAcc]}
             end
@@ -281,33 +295,35 @@ check_all_opponents(U1, P1, Others, Acc) ->
             R1 = maps:get(radius, P1_Latest),
             R2 = maps:get(radius, P2),
             
-            DistSq = (X1 - X2)*(X1 - X2) + (Y1 - Y2)*(Y1 - Y2),
+            Dist = math:sqrt((X1 - X2)*(X1 - X2) + (Y1 - Y2)*(Y1 - Y2)),
             % Condição: Centro do menor dentro do corpo do maior + margem de tamanho
             Threshold = 1.1,
 
             if
-                DistSq < (R1 * R1) andalso R1 > R2 * Threshold ->
+                (Dist + R2 =< R1) andalso (R1 > R2) ->
                     %% P1 come P2
                     io:format("~s COMEU ~s!~n", [U1, U2]),
                     Mass1 = maps:get(mass, P1_Latest),
                     Mass2 = maps:get(mass, P2),
-                    NewMass = Mass1 + Mass2,
+                    Transfer = Mass2 / 4,
+                    NewMass = Mass1 + Transfer,
                     NewR = math:sqrt(NewMass / math:pi()),
                     
                     % Atualiza P1 e dá Respawn no P2
-                    Acc1 = maps:put(U1, P1_Latest#{mass => NewMass, radius => NewR, score => maps:get(score, P1_Latest) + 10}, InnerAcc),
+                    Acc1 = maps:put(U1, P1_Latest#{mass => NewMass, radius => NewR, score => maps:get(score, P1_Latest) + 1}, InnerAcc),
                     maps:put(U2, respawn_player(P2), Acc1);
                 
-                DistSq < (R2 * R2) andalso R2 > R1 * Threshold ->
+                (Dist + R1 =< R2) andalso (R2 > R1) ->
                     %% P2 come P1
                     io:format("~s COMEU ~s!~n", [U2, U1]),
                     Mass1 = maps:get(mass, P1_Latest),
                     Mass2 = maps:get(mass, P2),
-                    NewMass = Mass1 + Mass2,
+                    Transfer = Mass1 / 4,
+                    NewMass = Mass2 + Transfer,
                     NewR = math:sqrt(NewMass / math:pi()),
                     
                     % Atualiza P2 e dá Respawn no P1
-                    Acc1 = maps:put(U2, P2#{mass => NewMass, radius => NewR, score => maps:get(score, P2) + 10}, InnerAcc),
+                    Acc1 = maps:put(U2, P2#{mass => NewMass, radius => NewR, score => maps:get(score, P2) + 1}, InnerAcc),
                     maps:put(U1, respawn_player(P1_Latest), Acc1);
                 
                 true -> InnerAcc
@@ -327,7 +343,7 @@ respawn_player(OldPData) ->
         mass => Mass,
         torque => 10.00,
         force => 25.00,
-        score => 0,
+        score => maps:get(score, OldPData),
         radius => math:sqrt(Mass / math:pi()),
         pid => maps:get(pid, OldPData) 
     }.
