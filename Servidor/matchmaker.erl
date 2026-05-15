@@ -1,11 +1,11 @@
 -module(matchmaker).
--export([start/0]).
+-export([start/1]).
 
-start() ->
-    spawn(fun() -> loop([], #{}) end).
+start(TopM) ->
+    spawn(fun() -> loop([], #{}, TopM) end).
 % PID: Matchmaker_PID
 
-loop(QNamesPids, Games) ->
+loop(QNamesPids, Games, TopM) ->
     receive
         % Jogador entra na fila
         {join_queue, From, Username} ->
@@ -13,13 +13,13 @@ loop(QNamesPids, Games) ->
             case lists:any(fun({_, Pid}) -> Pid =:= From end, QNamesPids) of
                 true ->
                     From ! {error, already_in_queue},
-                    loop(QNamesPids, Games);
+                    loop(QNamesPids, Games, TopM);
                 false ->
                     NewQueue = QNamesPids ++ [{Username, From}],
                     From ! ok,
                     %[TRIGGER] pode acontecer um novo jogo
                     {FinalQueue, FinalGames} = start_game(NewQueue, Games),
-                    loop(FinalQueue, FinalGames)
+                    loop(FinalQueue, FinalGames, TopM)
             end;
         %Conas sai da fila
         {leave_queue, From, _} ->
@@ -27,20 +27,20 @@ loop(QNamesPids, Games) ->
                 true ->
                     NewQueue = lists:filter(fun({_, Pid}) -> Pid =/= From end, QNamesPids),
                     From ! ok,
-                    loop(NewQueue, Games);
+                    loop(NewQueue, Games, TopM);
                 false ->
                     From ! ok,
-                    loop(QNamesPids, Games)
+                    loop(QNamesPids, Games, TopM)
             end;
         %Avisar o mastchmaker que um jogo terminou, ou seja no caso de isto estar cheio pode voltar a tentar encher um servidor
         {game_finished, GameId, Winner} ->
             case Winner of
                 no_winner -> ok;
-                {Name, Score} -> top_manager:add_winner(Name, Score)
+                {Name, Score} -> TopM ! {add_winner, Name, Score}
             end,
             NewGames = maps:remove(GameId, Games),
             {FinalQueue, FinalGames} = start_game(QNamesPids, NewGames),
-            loop(FinalQueue, FinalGames)
+            loop(FinalQueue, FinalGames, TopM)
     end.
 
 %Começar jogos
