@@ -33,7 +33,7 @@ ArrayList<ObjectInfo> objects = new ArrayList<ObjectInfo>();   // lista de objet
 ArrayList<TopPlayer> topPlayers = new ArrayList<TopPlayer>();
 String terminalBuffer = "";         // buffer para escrever comandos no ecrã de login
 String myUsername = "";             // nome do jogador local (capturado no LOGIN)
-
+final Object lock = new Object();
 
 // Flags para movimento contínuo (enquanto a tecla está premida)
 boolean leftFlag = false, rightFlag = false, forwardFlag = false;
@@ -43,20 +43,23 @@ void setup() {
   size(800, 600);                                    // janela 800x600
   c = new Client(this, "127.0.0.1", 12345);         // liga ao servidor local na porta 12345
   println("Conectado ao servidor!");
+
+  Thread t = new Thread(() -> {
+  while (true) {
+    if (c != null && c.available() > 0) {
+      String raw = c.readStringUntil('\n');
+      if (raw != null) handleServerMessage(raw.trim());
+    }
+    try { Thread.sleep(5); } catch (InterruptedException e) {}
+  }
+});
+t.setDaemon(true);
+t.start();
 }
 
 // ==================== LOOP PRINCIPAL (executado a cada frame) ====================
 void draw() {
   background(30);                    // fundo escuro
-
-  // --- 1. Ler todas as linhas enviadas pelo servidor ---
-  if (c.available() > 0) {
-    String raw = c.readStringUntil('\n');
-    if (raw != null) {
-      handleServerMessage(raw.trim());
-    }
-  }
-
   // --- 2. Enviar comandos de movimento CONTINUAMENTE se as teclas estiverem premidas ---
   if (state == 2) {
     if (leftFlag)   c.write("LEFT\n");
@@ -133,8 +136,8 @@ void parseTop(String msg) {
 // ==================== PARSE DO ESTADO DO JOGO ====================
 // Formato: P,Nome,x,y,angulo,massa,score|P,...|O,F/V,x,y,raio|O,...
 void parseGameState(String msg) {
-  players.clear();
-  objects.clear();
+  ArrayList<PlayerInfo> newPlayers = new ArrayList<PlayerInfo>();
+  ArrayList<ObjectInfo> newObjects = new ArrayList<ObjectInfo>();
 
   String[] parts = split(msg, '|');           // separa pelo símbolo '|'
   for (String p : parts) {
@@ -142,23 +145,15 @@ void parseGameState(String msg) {
     String[] d = split(p, ',');               // cada parte separada por ','
     if (d.length == 0) continue;
 
-    if (d[0].equals("P") && d.length >= 6) {
-      // Jogador → 6 campos: P,Username,x,y,angle,mass,score
-      String name = d[1];
-      float x = float(d[2]);
-      float y = float(d[3]);
-      float angle = float(d[4]);
-      float mass = float(d[5]);
-      int score = int(d[6]);
-      players.add(new PlayerInfo(name, x, y, angle, mass, score));
+    if (d[0].equals("P") && d.length >= 7) {
+      newPlayers.add(new PlayerInfo(d[1], float(d[2]), float(d[3]), float(d[4]), float(d[5]), int(d[6])));
     } else if (d[0].equals("O") && d.length >= 5) {
-      // Objeto → 5 campos: O,Tipo(F/V),x,y,raio
-      String type = d[1];          // "F" = food, "V" = poison
-      float x = float(d[2]);
-      float y = float(d[3]);
-      float size = float(d[4]);    // raio do objeto
-      objects.add(new ObjectInfo(type, x, y, size));
+      newObjects.add(new ObjectInfo(d[1], float(d[2]), float(d[3]), float(d[4])));
     }
+  }
+  synchronized(lock) {
+    players = newPlayers;
+    objects = newObjects;
   }
   println("Jogadores: " + players.size() + "  Objetos: " + objects.size());
 }
@@ -229,7 +224,15 @@ void drawQueueScreen() {
 // ==================== ECRÃ DE JOGO ====================
 void drawGameScreen() {
   // --- Desenhar objetos (comida = verde, veneno = vermelho) ---
-  for (ObjectInfo obj : objects) {
+  
+  ArrayList<PlayerInfo> snapP;
+  ArrayList<ObjectInfo> snapO;
+  synchronized(lock) {
+    snapP = new ArrayList<PlayerInfo>(players);
+    snapO = new ArrayList<ObjectInfo>(objects);
+  }
+
+  for (ObjectInfo obj : snapO) {
     if (obj.type.equals("F")) {
       fill(0, 255, 0);                // verde para comida
     } else {
@@ -241,8 +244,8 @@ void drawGameScreen() {
 
   // --- Desenhar jogadores ---
 
-  players.sort((p1, p2) -> Float.compare(p1.mass, p2.mass)); // desenhar o gajo pequeno pro grande naqueles pique
-  for (PlayerInfo p : players) {
+  snapP.sort((p1, p2) -> Float.compare(p1.mass, p2.mass)); // desenhar o gajo pequeno pro grande naqueles pique
+  for (PlayerInfo p : snapP) {
     pushMatrix();
     translate(p.x, p.y);              // move o sistema de coordenadas para o centro do jogador
 

@@ -1,6 +1,6 @@
 # Fdb version 4
-["pdflatex"] 1778942857.52682 "/Users/josepedro/Downloads/github/PC/Relatório/relatorio.tex" "relatorio.pdf" "relatorio" 1778942857.91905 0
-  "/Users/josepedro/Downloads/github/PC/Relatório/relatorio.tex" 1778942856.90732 7199 36d1a4a3400d7f96048497f4de9b61dd ""
+["pdflatex"] 1778947638.94171 "/Users/josepedro/Downloads/github/PC/Relatório/relatorio.tex" "relatorio.pdf" "relatorio" 1778947639.42131 0
+  "/Users/josepedro/Downloads/github/PC/Relatório/relatorio.tex" 1778947638.71785 7266 12814912801deea1821ed3cd6981b73e ""
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc" 1136849721 2971 def0b6c1f0b107b3b936def894055589 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
@@ -91,10 +91,10 @@
   "/usr/local/texlive/2025/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1768851511 5467155 19efa205003f9ecad95fbbaa6ff24da1 ""
   "/usr/local/texlive/2025/texmf-var/web2c/pdftex/pdflatex.fmt" 1768851486 3345740 827a2e75a2169f8c8e62fbeddcbfb725 ""
   "/usr/local/texlive/2025/texmf.cnf" 1741450484 577 418a7058ec8e006d8704f60ecd22c938 ""
-  "relatorio.aux" 1778942857.88034 1402 d69c84633a42bd37b52d91a0d7bc3c32 "pdflatex"
-  "relatorio.out" 1778942857.88077 1342 fe12b5ddc245c987a9ef86197204ca34 "pdflatex"
-  "relatorio.tex" 1778942856.90732 7199 36d1a4a3400d7f96048497f4de9b61dd ""
-  "relatorio.toc" 1778942857.88093 763 bf28e7d8b7652336206513b1fbd4d14d "pdflatex"
+  "relatorio.aux" 1778947639.37778 1402 d69c84633a42bd37b52d91a0d7bc3c32 "pdflatex"
+  "relatorio.out" 1778947639.37837 1342 fe12b5ddc245c987a9ef86197204ca34 "pdflatex"
+  "relatorio.tex" 1778947638.71785 7266 12814912801deea1821ed3cd6981b73e ""
+  "relatorio.toc" 1778947639.37854 763 bf28e7d8b7652336206513b1fbd4d14d "pdflatex"
   (generated)
   "relatorio.aux"
   "relatorio.log"
