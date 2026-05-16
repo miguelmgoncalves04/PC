@@ -201,8 +201,9 @@ handle_object_collisions(State) ->
                     case ObjType of
                         poison when Dist < PR ->
                             %% sobreposição com veneno: perde massa
-                            MinMass = 5.0,
+                            MinMass = 250.0,
                             NewMass = max(MinMass, maps:get(mass, PData) - ObjM),
+
                             NewR = math:sqrt(NewMass / math:pi()),
                             NewPData = PData#{mass => NewMass, radius => NewR},
                             {maps:put(Username, NewPData, PA), true};
