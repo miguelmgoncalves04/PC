@@ -1,22 +1,4 @@
-//Agora usa-se flags tipo leftFlag para dizer se tamos a clicar na tecla ou não e o 
-//draw() envia os comandos consuante se tiver true ou não.
-//Fica Flase se não tivermos a clicar na tecla isso é a keyReleaded. 
-//É uma forma de o game-session saber quando é para desacelerar.
 
-//O taveira colocaou no game_session o novo formato que é 
-//"P,Nome,x,y,ângulo,massa,score|...|O,F/V,x,y,raio|...". e eu adaptedei tudo para
-//essa cena tbm.
-
-//Nova classe ObjectInfo para desenhar o venono e comida.
-
-
-//Agora são desenhados cirulos em ves de retangulos nos jogadores.
-//O raio desses é simplesmente sqrt(mass/PI) e usa-se a nova variavel myUsername 
-//para saber qual pintar de azul
-
-
-//Pedi ao chat para comentar o codigo tbm hjahjah
-//Btw foi mais ele do que eu que fiz isto, mas tá certo acho kk, por isso yha eu n saia do sitio kkkk.
 
 
 import processing.net.*;
@@ -24,7 +6,7 @@ import java.util.*;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-// ==================== VARIÁVEIS GLOBAIS ====================
+
 Client c;                           // ligação TCP com o servidor Erlang
 int state = 0;                      // ecrã atual: 0=Login, 1=Fila de espera, 2=Jogo
 String serverMsg = "";              // mensagem de erro ou aviso do servidor
@@ -38,7 +20,7 @@ final Object lock = new Object();
 // Flags para movimento contínuo (enquanto a tecla está premida)
 boolean leftFlag = false, rightFlag = false, forwardFlag = false;
 
-// ==================== SETUP ====================
+
 void setup() {
   size(800, 600);                                    // janela 800x600
   c = new Client(this, "127.0.0.1", 12345);         // liga ao servidor local na porta 12345
@@ -57,7 +39,7 @@ t.setDaemon(true);
 t.start();
 }
 
-// ==================== LOOP PRINCIPAL (executado a cada frame) ====================
+
 void draw() {
   background(30);                    // fundo escuro
   // --- 2. Enviar comandos de movimento CONTINUAMENTE se as teclas estiverem premidas ---
@@ -77,7 +59,6 @@ void draw() {
   }
 }
 
-// ==================== TRATAMENTO DE MENSAGENS DO SERVIDOR ====================
 void handleServerMessage(String msg) {
   println("Servidor diz: " + msg);    // mostra no terminal (debug)
   
@@ -133,7 +114,6 @@ void parseTop(String msg) {
     }
 }
 
-// ==================== PARSE DO ESTADO DO JOGO ====================
 // Formato: P,Nome,x,y,angulo,massa,score|P,...|O,F/V,x,y,raio|O,...
 void parseGameState(String msg) {
   ArrayList<PlayerInfo> newPlayers = new ArrayList<PlayerInfo>();
@@ -158,7 +138,6 @@ void parseGameState(String msg) {
   println("Jogadores: " + players.size() + "  Objetos: " + objects.size());
 }
 
-// ==================== INPUT DO TECLADO ====================
 void keyPressed() {
   if (state == 0) {
     // ---------- ECRÃ DE LOGIN ----------
@@ -177,7 +156,6 @@ void keyPressed() {
       terminalBuffer += key;       // acumula caracteres digitados
     }
   } else if (state == 2) {
-    // ---------- DURANTE O JOGO ----------
     // Ativa flags (o envio real é feito no draw())
     if (key == 'w' || keyCode == UP)    forwardFlag = true;
     if (key == 'a' || keyCode == LEFT)  leftFlag = true;
@@ -194,7 +172,6 @@ void keyReleased() {
   }
 }
 
-// ==================== ECRÃ DE LOGIN ====================
 void drawLoginScreen() {
   textAlign(CENTER);
   fill(255);
@@ -206,7 +183,6 @@ void drawLoginScreen() {
   text(terminalBuffer, width/2, height/2 + 80); // mostra o que estás a escrever
 }
 
-// ==================== ECRÃ DE FILA DE ESPERA ====================
 void drawQueueScreen() {
     textAlign(CENTER);
     fill(255, 255, 0);
@@ -221,9 +197,9 @@ void drawQueueScreen() {
     }
 }
 
-// ==================== ECRÃ DE JOGO ====================
+
 void drawGameScreen() {
-  // --- Desenhar objetos (comida = verde, veneno = vermelho) ---
+
   
   ArrayList<PlayerInfo> snapP;
   ArrayList<ObjectInfo> snapO;
@@ -242,7 +218,6 @@ void drawGameScreen() {
     ellipse(obj.x, obj.y, obj.size * 2, obj.size * 2);  // círculo com diâmetro 2*raio
   }
 
-  // --- Desenhar jogadores ---
 
   snapP.sort((p1, p2) -> Float.compare(p1.mass, p2.mass)); // desenhar o gajo pequeno pro grande naqueles pique
   for (PlayerInfo p : snapP) {
@@ -278,7 +253,6 @@ void drawGameScreen() {
   }
 }
 
-// ==================== CLASSES DE DADOS ====================
 class PlayerInfo {
   String name;
   float x, y, angle;
