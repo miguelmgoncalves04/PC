@@ -14,9 +14,8 @@ leave_queue(M_Pid, Username) ->
 login_loop(Socket, UTM, MM, TopM) -> %aqui eu vou receber algo no formato {tcp,Socket,Data}
     receive 
         {tcp,Socket,Data} -> % RECEBI ALGO DO JAVA (user_input)
-        Data1 = strip_newline(Data), %tira o /n no final q tava a fuder com tudo tipo quando fazemos login:....."ENTER"
-        Lista = binary:split(Data1, <<":">>, [global]), % segundo o chat "O {packet, line} já remove o \n, por isso não é necessário trim"  e tbm "string:trim nao funciona com binarios" "mas é um bocadinho contraditorio porque eu mesmo assim tive que fazer uma funcao auxiliar para tirar o \n, mas prontos está a funcionar. Mesmo assim deixei comentado como estava caso eu seja meio necio e tivesse tudo bem. EU QUERO O CHAT SE FODA NAO ACHAS?!?!??!?!?!?!!?!?
-        %Lista = binary:split(string:trim(Data), <<":">>, [global]), % comandos (e.g) LOGIN:PauloPicas:cartas123
+        Data1 = strip_newline(Data), %tira o /n no final 
+        Lista = binary:split(Data1, <<":">>, [global]), 
         case Lista of %caso for um pedido do java isto vem no formato acima
             [<<"LOGIN">>, Username, Pass] -> 
                 UTM ! {login_usr, self(), Username, Pass},
@@ -77,8 +76,7 @@ matchmaker_loop(Socket, UTM, MM, Username, TopM) ->
         {tcp,Socket,Data} -> 
             Data1 = strip_newline(Data),
             io:format("DEBUG matchmaker recebeu: ~p~n", [Data1]), 
-            Lista = binary:split(Data1, <<":">>, [global]), % segundo o chat "O {packet, line} já remove o \n, por isso não é necessário trim" e tbm "string:trim nao funciona com binarios" "mas é um bocadinho contraditorio porque eu mesmo assim tive que fazer uma funcao auxiliar para tirar o \n, mas prontos está a funcionar"
-            %Lista = binary:split(string:trim(Data), <<":">>, [global]), % comandos (e.g) JOIN EXIT LOGOUT
+            Lista = binary:split(Data1, <<":">>, [global]), 
             case Lista of %caso for um pedido do java isto vem no formato acima
             [<<"JOIN">>] -> 
                 join_queue(MM,Username),
@@ -147,11 +145,6 @@ strip_newline(Bin) ->
         $\n -> binary:part(Bin, 0, byte_size(Bin)-1);
         _   -> Bin
     end.
-
-
-% Resumidamente tipo o cliente ao fazer o registro e o login depois estava a mandar <<"JOIN\n">> e não só join por isso estava a cair no  _ -> e dava o erro (ERROR) COMANDO_INVALIDO.
-% Eu testei isso com um game_session que deixei comentado e voçês podem ver que agora tá tudo direitinho e vai da tela de login para a tela de espera para a tela do jogo.
-
 
 encode_top_to_string(TopList) ->
     % Transforma cada tuplo {Name, Score} numa string "Name,Score"

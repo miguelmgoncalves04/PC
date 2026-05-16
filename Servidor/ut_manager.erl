@@ -1,6 +1,4 @@
-%ALTERAÇÕES:
 
-%simplesmente mudei o nome do ficheiro de user_manager para ut_manager e o -export tava errado tbm xd bla
 
 -module(ut_manager).
 -export([start/0]).
@@ -8,24 +6,6 @@
 start() ->
     spawn(fun() -> loop(#{}, #{}) end).
 
-% register_usr(Pid, Username, Password) ->
-%     Pid ! {register_usr, self(), Username, Password},
-%     receive
-%         Response -> Response
-%     end.
-
-% login_usr(Pid, Username, Password) ->
-%     Pid ! {login_usr, self(), Username, Password},
-%     receive
-%         Response -> Response
-%     end.
-
-% unregister_usr(Pid, Username) ->
-%     Pid ! {unregister_usr, self(), Username},
-%     receive
-%         Response -> Response
-%     end.
-%isto pode ir de cona eu acho
 
 loop(Users, Logged) ->
     receive
@@ -63,7 +43,7 @@ loop(Users, Logged) ->
                             end
                     end
             end;
-        %% cancelar o registo do tropa
+        %% cancelar o registo 
         {unregister_usr, From, Username, Password} ->
             case maps:find(Username, Users) of
                 error ->
@@ -72,7 +52,7 @@ loop(Users, Logged) ->
                 {ok, StoredPass} ->
                     case StoredPass =:= Password of
                         true ->
-                            NewUsers = maps:remove(Username, Users),
+                            NewUsers = maps:remove(Username, Users),  
                             NewLogged = maps:remove(Username, Logged),
                             From ! ok,
                             loop(NewUsers, NewLogged);

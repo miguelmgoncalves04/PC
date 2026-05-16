@@ -21,7 +21,7 @@ loop(QNamesPids, Games, TopM) ->
                     {FinalQueue, FinalGames} = start_game(NewQueue, Games),
                     loop(FinalQueue, FinalGames, TopM)
             end;
-        %Conas sai da fila
+        %sai da fila
         {leave_queue, From, _} ->
             case lists:any(fun({_, Pid}) -> Pid =:= From end, QNamesPids) of
                 true ->

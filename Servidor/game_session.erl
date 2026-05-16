@@ -1,46 +1,3 @@
-%ALTERAÇÕES:
-
-% Apenas vejam o final comentado
-
-%Comit todo que dei:
-% Neste commit que dei apenas mexi no client_handler e no game_session e no main.pde
-
-% Ahh e zezinho tu tinhas dito que n conseguias abrir mais que um pde porque dava erros.
-% Eu se abro os 3 com a aplicação do processing consigo rodar sem erros.
-% no Vs_code aparece tudo sublinhado ns porque
-% Tipo eu simplesmente abri o main2 main3 main4 em abas diferentes no processing e consegui rodar olha tenta
-
-% segundo commit:
-
-% tá a ir para a tela de jogo e a comunição rá certinha e isso.
-% claro que fiz muita coisa com o chat como é obvio, mas tentei mudar o menos de coisa possivel e como tá a funcionar acho que tá safe
-% acho que agora seria criar um outro processo tipo top_pontuações para n se tar a mecher já na fisica n?
-% top_pontuações guarda uma lista tipo dos vencedores e as pontuações de cada um
-% e tipo quando o matchmaker recebe "A partida acabou" o game_session ou o matchamler memo calcula o vencedor e manda ao top_pontuações ou algo assim
-
-% Tbm se pode por o mathmaker a esperar uns 5s para ver se entra um 4 jogador antes disso
-
-% E depois é fazer a fisica do joguinho
-
-
-
-
-
-% terceiro comit do luis:
-
-
-
-% Simplemtene mudei tipo os valores de força e isso, mas ainda é preciso mudar porque o moviento tá uma piça (mas é só indo mudar os valores literal) 
-% nem sei se é suposto ser assim mas eu intepretei desta forma com um pouco de ajuda xd. Ahh e adicionei o amortecimento linear 
-% e angular porque o coiso tipo quando clicavas na tecla esquerda ficava sempre a girar e n parava por isso agora para é tipo 
-% um atrito, no enunciado num diz nada contra por isso fds.
-
-%Ainda falta fazer o top pontuações tipo por mimfazia-se memo um novo processo, arquivo, que se iniciava com o tcp_server.
-%Mas o mais importante é qu no game_session falta fazer com que os objetos respawnem e tbm tipo fazer um 
-%"handle_player_collisions", porque ainda n dá para comer os migos 👅👅👅
-
-% O resto tá no main.pde
-
 -module(game_session).
 -export([start/2, send_input/3,update/1]).
 
@@ -107,7 +64,6 @@ init_players(Players) ->
         fun({Username, Pid}, AccMap) ->
             Mass = 800.0,
             PData = #{
-                % Mudei isto tbm
                 pos => {rand:uniform() * 500, rand:uniform() * 500},
                 vel => {0.0, 0.0},
                 angle => 0.0,
@@ -179,7 +135,6 @@ handle_input(State, Username, Command) ->
             maps:put(players, NewPlayers, State)
     end.
 
-%tenho de rever esta funçao
 handle_object_collisions(State) ->
     Players = maps:get(players, State),
     Objects = maps:get(objects, State),
@@ -391,7 +346,7 @@ encode_state(State) ->
     ),
     list_to_binary(PlayersList ++ "|" ++ Objects_str ++ "\n"). 
 
-%renovado a cada tick esta merda
+%renovado a cada tick 
 update(State) ->
     State1 = move_players(State),
     State2 = apply_boundaries(State1),
@@ -429,7 +384,7 @@ move_players(State) ->
     ),
     maps:put(players, NewPlayers, State).
 
-% NOVO: limites do mapa (0‑800 x 0‑600), o clamp é para quando atigir as bordas por a velocidade a 0
+% limites do mapa
 apply_boundaries(State) ->
     Players = maps:get(players, State),
     NewPlayers = maps:map(
