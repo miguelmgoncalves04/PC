@@ -114,7 +114,7 @@ init_players(Players) ->
                 ang_vel => 0.0,
                 mass => Mass,
                 torque => 10.00,
-                force => 25.00,
+                force => 40.00,
                 score => 0,
                 % guardamos o raio para o futuro
                 radius => math:sqrt(Mass / math:pi()),

@@ -20,6 +20,9 @@
 
 
 import processing.net.*;
+import java.util.*;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 // ==================== VARIÁVEIS GLOBAIS ====================
 Client c;                           // ligação TCP com o servidor Erlang
@@ -30,6 +33,7 @@ ArrayList<ObjectInfo> objects = new ArrayList<ObjectInfo>();   // lista de objet
 ArrayList<TopPlayer> topPlayers = new ArrayList<TopPlayer>();
 String terminalBuffer = "";         // buffer para escrever comandos no ecrã de login
 String myUsername = "";             // nome do jogador local (capturado no LOGIN)
+
 
 // Flags para movimento contínuo (enquanto a tecla está premida)
 boolean leftFlag = false, rightFlag = false, forwardFlag = false;
@@ -74,7 +78,7 @@ void draw() {
 void handleServerMessage(String msg) {
   println("Servidor diz: " + msg);    // mostra no terminal (debug)
   
-  if (msg.startsWith("{\"top\":")) {
+  if (msg.startsWith("(TOP)")) {
     parseTop(msg);
     return;
   }
@@ -101,17 +105,30 @@ void handleServerMessage(String msg) {
 
 
 void parseTop(String msg) {
+
+  String cleanMsg = msg.replace("(TOP)", "").trim();
+
     topPlayers.clear();
-    JSONObject json = parseJSONObject(msg);
-    JSONArray arr = json.getJSONArray("top");
-    for (int i = 0; i < arr.size(); i++) {
-        JSONObject item = arr.getJSONObject(i);
-        String name = item.getString("username");
-        int score = item.getInt("score");
-        topPlayers.add(new TopPlayer(name, score));
+    
+    // Remove o "\n" do fim e verifica se a mensagem não está vazia
+    msg = cleanMsg.trim();
+    if (msg.isEmpty()) return;
+    
+    // Corta a string em cada jogador (separados por ;)
+    String[] players = msg.split(";");
+    
+    for (String playerStr : players) {
+        // Corta os dados do jogador (Nome,Score)
+        String[] data = playerStr.split(",");
+        
+        if (data.length == 2) {
+            String name = data[0];
+            int score = Integer.parseInt(data[1]);
+            
+            topPlayers.add(new TopPlayer(name, score));
+        }
     }
 }
-
 
 // ==================== PARSE DO ESTADO DO JOGO ====================
 // Formato: P,Nome,x,y,angulo,massa,score|P,...|O,F/V,x,y,raio|O,...

@@ -68,9 +68,10 @@ login_loop(Socket, UTM, MM, TopM) -> %aqui eu vou receber algo no formato {tcp,S
 
 matchmaker_loop(Socket, UTM, MM, Username, TopM) ->
     TopM ! {get_top, self()},
-    receive {top, List} -> 
-        TopJson = encode_top(List),
-        gen_tcp:send(Socket, TopJson)
+    receive 
+        {top, List} -> 
+            TopString = encode_top_to_string(List),
+            gen_tcp:send(Socket, TopString)
     end,
     receive
         {tcp,Socket,Data} -> 
@@ -152,12 +153,14 @@ strip_newline(Bin) ->
 % Eu testei isso com um game_session que deixei comentado e voçês podem ver que agora tá tudo direitinho e vai da tela de login para a tela de espera para a tela do jogo.
 
 
-
-encode_top(TopList) ->
-    JsonItems = lists:map(fun({Name, Score}) ->
-        io_lib:format("{\"username\":\"~s\",\"score\":~B}", [Name, Score])
+encode_top_to_string(TopList) ->
+    % Transforma cada tuplo {Name, Score} numa string "Name,Score"
+    Items = lists:map(fun({Name, Score}) ->
+        [Name, ",", integer_to_list(Score)]
     end, TopList),
-    ItemsStr = lists:join(",", JsonItems),
-    list_to_binary("{\"top\":[" ++ ItemsStr ++ "]}\n").
+    
+    % Junta todos os jogadores com ";" e adiciona a nova linha no fim
+    TopString = lists:join($;, Items),
+    list_to_binary(["(TOP)",TopString, "\n"]).
 
 
